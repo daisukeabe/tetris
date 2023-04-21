@@ -32,8 +32,8 @@
             1000
         );
 
-        camera.position.set(25, 10, 32);
-        camera.lookAt(5, 10, 0);
+        camera.position.set(5, 0, 22);
+        camera.lookAt(5, 10, -5);
 
         const scene = new THREE.Scene();
 
@@ -171,33 +171,33 @@
 
         // Create a random tetromino
         function createTetromino() {
-    const shapeIndex = Math.floor(Math.random() * tetrominoShapes.length);
-    const shape = JSON.parse(JSON.stringify(tetrominoShapes[shapeIndex])); // Deep copy the shape to avoid modifying the original
-    const color = tetrominoColors[shapeIndex];
+            const shapeIndex = Math.floor(Math.random() * tetrominoShapes.length);
+            const shape = JSON.parse(JSON.stringify(tetrominoShapes[shapeIndex])); // Deep copy the shape to avoid modifying the original
+            const color = tetrominoColors[shapeIndex];
 
-    const group = new THREE.Group();
+            const group = new THREE.Group();
 
-    for (let i = 0; i < shape.length; i++) {
-        const cubeGeometry = new THREE.BoxGeometry(
-            blockSize,
-            blockSize,
-            blockSize
-        );
-        const cubeMaterial = new THREE.MeshBasicMaterial({
-            color: color,
-            wireframe: true,
-        });
-        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-        cube.position.set(
-            shape[i].x * blockSize,
-            shape[i].y * blockSize,
-            0
-        );
-        group.add(cube);
-    }
+            for (let i = 0; i < shape.length; i++) {
+                const cubeGeometry = new THREE.BoxGeometry(
+                    blockSize,
+                    blockSize,
+                    blockSize
+                );
+                const cubeMaterial = new THREE.MeshBasicMaterial({
+                    color: color,
+                    wireframe: true,
+                });
+                const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+                cube.position.set(
+                    shape[i].x * blockSize,
+                    shape[i].y * blockSize,
+                    0
+                );
+                group.add(cube);
+            }
 
-    return { group, shape, color };
-}
+            return { group, shape, color };
+        }
 
 
         let tetromino = createTetromino();
@@ -215,83 +215,128 @@
         let dropCounter = 0;
 
         function animate() {
-    requestAnimationFrame(animate);
+            requestAnimationFrame(animate);
 
-    const currentTime = performance.now();
-    dropCounter += currentTime - prevTime;
+            const currentTime = performance.now();
+            dropCounter += currentTime - prevTime;
 
-    if (dropCounter > dropInterval) {
-        posY -= blockSize;
-        if (collides()) {
-            posY += blockSize;
-            addToBoard();
-            scene.remove(tetromino);
+            if (dropCounter > dropInterval) {
+                posY -= blockSize;
+                if (collides()) {
+                    posY += blockSize;
+                    addToBoard();
+                    scene.remove(tetromino);
 
-            // 新しいテトリミノを生成する
-            const newTetromino = createTetromino();
-            tetromino = newTetromino.group;
-            tetrominoShape = JSON.parse(JSON.stringify(newTetromino.shape)); // Deep copy the shape to avoid modifying the original
-            tetrominoColor = newTetromino.color;
-            posX = Math.floor(numCols / 2) * blockSize;
-            posY = (numRows - 1) * blockSize;
-            scene.add(tetromino);
+                    // 新しいテトリミノを生成する
+                    const newTetromino = createTetromino();
+                    tetromino = newTetromino.group;
+                    tetrominoShape = JSON.parse(JSON.stringify(newTetromino.shape)); // Deep copy the shape to avoid modifying the original
+                    tetrominoColor = newTetromino.color;
+                    posX = Math.floor(numCols / 2) * blockSize;
+                    posY = (numRows - 1) * blockSize;
+                    scene.add(tetromino);
 
-            if (collides()) {
-                // ゲームオーバー処理
-                posY = 18;
-                board = createBoard(numRows, numCols);
+                    if (collides()) {
+                        // ゲームオーバー処理
+                        posY = 18;
+                        board = createBoard(numRows, numCols);
+                    }
+                }
+                tetromino.position.set(posX, posY, 0);
+                dropCounter = 0;
             }
-        }
-        tetromino.position.set(posX, posY, 0);
-        dropCounter = 0;
-    }
 
-    prevTime = currentTime;
-    renderer.render(scene, camera);
-}
+            prevTime = currentTime;
+            renderer.render(scene, camera);
+        }
 
 
 
         function collides() {
-    const x = Math.floor(posX / blockSize);
-    const y = Math.floor((numRows - 1 - posY) / blockSize);
+            const x = Math.floor(posX / blockSize);
+            const y = Math.floor((numRows - 1 - posY) / blockSize);
 
-    // ブロックが左右の壁に衝突したとき
-    if (posX < 0 || posX >= numCols * blockSize) {
-        return true;
-    }
+            // ブロックが左右の壁に衝突したとき
+            if (posX < 0 || posX >= numCols * blockSize) {
+                return true;
+            }
 
-    // ブロックが床に着いたとき
-    if (posY < 0) {
-        return true;
-    }
+            // ブロックが床に着いたとき
+            if (posY < 0) {
+                return true;
+            }
 
-    // ブロックが積み重なったとき
-    if (board[y][x]) {
-        return true;
-    }
+            // ブロックが積み重なったとき
+            if (board[y][x]) {
+                return true;
+            }
 
-    return false;
-}
-
-function addToBoard() {
-    const x = Math.floor(posX / blockSize);
-    const y = Math.floor((numRows - 1 - posY) / blockSize);
-    const colorIndex = tetrominoColors.indexOf(tetrominoColor);
-
-    for (let i = 0; i < tetrominoShape.length; i++) {
-        const newX = x + tetrominoShape[i].x;
-        const newY = y - tetrominoShape[i].y;
-
-        if (newY >= 0 && newY < numRows && newX >= 0 && newX < numCols) {
-            board[newY][newX] = colorIndex + 1;
+            return false;
         }
-    }
 
-    scene.remove(boardGroup);
-    boardGroup = drawBoard();
-    scene.add(boardGroup);
+        function addToBoard() {
+            const x = Math.floor(posX / blockSize);
+            const y = Math.floor((numRows - 1 - posY) / blockSize);
+            const colorIndex = tetrominoColors.indexOf(tetrominoColor);
+
+            for (let i = 0; i < tetrominoShape.length; i++) {
+                const newX = x + tetrominoShape[i].x;
+                const newY = y - tetrominoShape[i].y;
+
+                if (newY >= 0 && newY < numRows && newX >= 0 && newX < numCols) {
+                    board[newY][newX] = colorIndex + 1;
+                }
+            }
+
+            scene.remove(boardGroup);
+            boardGroup = drawBoard();
+            scene.add(boardGroup);
+        }
+
+        function rotate(matrix, direction) {
+    const rotated = matrix[0].map((_, i) => matrix.map(row => row[i]));
+    if (direction > 0) {
+        return rotated.map(row => row.reverse());
+    } else {
+        return rotated.reverse();
+    }
 }
+
+document.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowLeft") {
+        posX -= blockSize;
+        if (collides()) {
+            posX += blockSize;
+        }
+        tetromino.position.set(posX, posY, 0);
+    } else if (event.key === "ArrowRight") {
+        posX += blockSize;
+        if (collides()) {
+            posX -= blockSize;
+        }
+        tetromino.position.set(posX, posY, 0);
+    } else if (event.key === "ArrowUp") {
+        const tempShape = JSON.parse(JSON.stringify(tetrominoShape));
+        tetrominoShape = rotate(tetrominoShape, 1);
+        if (collides()) {
+            tetrominoShape = tempShape;
+        } else {
+            scene.remove(tetromino);
+            const newTetromino = createTetromino();
+            tetromino = newTetromino.group;
+            tetrominoShape = JSON.parse(JSON.stringify(newTetromino.shape));
+            tetrominoColor = newTetromino.color;
+            tetromino.position.set(posX, posY, 0);
+            scene.add(tetromino);
+        }
+    } else if (event.key === "ArrowDown") {
+        posY -= blockSize;
+        if (collides()) {
+            posY += blockSize;
+        }
+        tetromino.position.set(posX, posY, 0);
+    }
+});
 
         animate();
     </script>
