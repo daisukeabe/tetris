@@ -29,12 +29,24 @@ let stageAnimation = null;
 // サウンドエフェクトの初期化
 const putSound = new Audio('sound/put.m4a');
 const sparkSound = new Audio('sound/spark.m4a');
+const bgMusic = new Audio('sound/open.m4a');
+const endMusic = new Audio('sound/end.m4a');
+const continueMusic = new Audio('sound/conte.m4a');
 putSound.volume = 0.30;  // 音量を30%に設定
-sparkSound.volume = 0.40;  // 音量を40%に設定
+sparkSound.volume = 0.60;  // 音量を60%に設定
+bgMusic.volume = 0.10;  // BGMは10%に設定
+endMusic.volume = 0.10;  // エンディングBGMも10%に設定
+continueMusic.volume = 0.20;  // コンティニューBGMは20%に設定
+bgMusic.loop = false;  // ループしない
+endMusic.loop = false;  // ループしない
+continueMusic.loop = false;  // ループしない
 
 // 音声ファイルをプリロード
 putSound.load();
 sparkSound.load();
+bgMusic.load();
+endMusic.load();
+continueMusic.load();
 
 // ライティングを追加して立体感を強調
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);  // 環境光を少し強く
@@ -61,10 +73,81 @@ const frameGeometry = new THREE.BoxGeometry(
     blockSize
 );
 
+// 背面のみ薄い壁面を追加
+const backWallGeometry = new THREE.PlaneGeometry(
+    numCols * blockSize,
+    numRows * blockSize
+);
+const backWallMaterial = new THREE.MeshBasicMaterial({
+    color: 0x4FC3F7,  // 明るいスカイブルー（線と同じ色）
+    transparent: true,
+    opacity: 0.02,  // 2%の透明度（背面のみ薄く）
+    side: THREE.DoubleSide,
+    depthWrite: false  // 深度バッファに書き込まない
+});
+const backWallMesh = new THREE.Mesh(backWallGeometry, backWallMaterial);
+backWallMesh.position.set(
+    (numCols * blockSize / 2) - blockSize / 2,
+    (numRows * blockSize / 2) - blockSize / 2,
+    -blockSize / 2  // 背面の位置
+);
+stageGroup.add(backWallMesh);
+
+// その他の面（上下左右）は10%の透明度
+const sideWallMaterial = new THREE.MeshBasicMaterial({
+    color: 0x4FC3F7,  // 明るいスカイブルー（線と同じ色）
+    transparent: true,
+    opacity: 0.10,  // 10%の透明度
+    side: THREE.DoubleSide,
+    depthWrite: false
+});
+
+// 左壁
+const leftWallGeometry = new THREE.PlaneGeometry(blockSize, numRows * blockSize);
+const leftWallMesh = new THREE.Mesh(leftWallGeometry, sideWallMaterial);
+leftWallMesh.rotation.y = Math.PI / 2;
+leftWallMesh.position.set(
+    -blockSize / 2,
+    (numRows * blockSize / 2) - blockSize / 2,
+    0
+);
+stageGroup.add(leftWallMesh);
+
+// 右壁
+const rightWallMesh = new THREE.Mesh(leftWallGeometry, sideWallMaterial);
+rightWallMesh.rotation.y = Math.PI / 2;
+rightWallMesh.position.set(
+    numCols * blockSize - blockSize / 2,
+    (numRows * blockSize / 2) - blockSize / 2,
+    0
+);
+stageGroup.add(rightWallMesh);
+
+// 上壁
+const topWallGeometry = new THREE.PlaneGeometry(numCols * blockSize, blockSize);
+const topWallMesh = new THREE.Mesh(topWallGeometry, sideWallMaterial);
+topWallMesh.rotation.x = Math.PI / 2;
+topWallMesh.position.set(
+    (numCols * blockSize / 2) - blockSize / 2,
+    numRows * blockSize - blockSize / 2,
+    0
+);
+stageGroup.add(topWallMesh);
+
+// 下壁
+const bottomWallMesh = new THREE.Mesh(topWallGeometry, sideWallMaterial);
+bottomWallMesh.rotation.x = Math.PI / 2;
+bottomWallMesh.position.set(
+    (numCols * blockSize / 2) - blockSize / 2,
+    -blockSize / 2,
+    0
+);
+stageGroup.add(bottomWallMesh);
+
 // EdgesGeometryを使用（これは辺のみを作成し、対角線は含まない）
 const edges = new THREE.EdgesGeometry(frameGeometry);
 const lineMaterial = new THREE.LineBasicMaterial({ 
-    color: 0x00D9FF,  // スカイブルーに変更（テトリミノのI型と同じ色）
+    color: 0x4FC3F7,  // 明るいスカイブルー
     linewidth: 2 
 });
 const frame = new THREE.LineSegments(edges, lineMaterial);
@@ -83,14 +166,14 @@ const bgGeometry = new THREE.PlaneGeometry(
     numRows * blockSize
 );
 const bgMaterial = new THREE.MeshBasicMaterial({
-    color: 0x0a0a2e,  // 濃い紺色
+    color: 0x1a1a3e,  // より明るい紺色
     side: THREE.DoubleSide
 });
 const background = new THREE.Mesh(bgGeometry, bgMaterial);
 background.position.set(
     (numCols * blockSize / 2) - blockSize / 2,
     (numRows * blockSize / 2) - blockSize / 2,
-    -blockSize / 2
+    -blockSize / 2 - 0.01  // グリッド線より後ろに配置
 );
 stageGroup.add(background);
 
@@ -138,7 +221,7 @@ textureLoader.load(
 // 背景の外枠（青色）を追加
 const bgEdges = new THREE.EdgesGeometry(bgGeometry);
 const bgEdgeMaterial = new THREE.LineBasicMaterial({ 
-    color: 0x00D9FF,
+    color: 0x4FC3F7,  // 明るいスカイブルー
     linewidth: 2
 });
 const bgFrame = new THREE.LineSegments(bgEdges, bgEdgeMaterial);
@@ -148,12 +231,12 @@ stageGroup.add(bgFrame);
 // 白いグリッド線を追加（背景と同じ深さに配置）
 const gridGroup = new THREE.Group();
 const gridMaterial = new THREE.LineBasicMaterial({ 
-    color: 0xffffff, 
+    color: 0x4FC3F7,  // 枠と同じ水色
     opacity: 0.2,
     transparent: true
 });
 
-const gridZ = -blockSize / 2 + 0.01; // 背景の少し前
+const gridZ = -blockSize / 2 + 0.02; // 背景の少し手前に表示
 
 // 縦線（ブロックの境界に配置）
 for (let i = 0; i <= numCols; i++) {
@@ -184,6 +267,8 @@ function createBoard(rows, cols) {
     for (let i = 0; i < rows; i++) {
         matrix.push(new Array(cols).fill(0));
     }
+    
+    
     return matrix;
 }
 
@@ -240,9 +325,9 @@ function drawBoard() {
                 });
                 const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
                 
-                // 黒い線（エッジ）を追加
+                // 背景色と同じ線（エッジ）を追加
                 const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
-                const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+                const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x1a1a3e, linewidth: 2 });
                 const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
                 cube.add(edges);
                 
@@ -258,8 +343,8 @@ function drawBoard() {
     return group;
 }
 
-let boardGroup = drawBoard();
-stageGroup.add(boardGroup);
+// boardGroupの初期化は後で行う（tetrominoColorsの定義後）
+let boardGroup;
 
 // Tetromino shape definitions
 const tetrominoShapes = [
@@ -317,6 +402,10 @@ const tetrominoColors = [
     0x9C27B0,  // T - パープル（鮮やかな紫）
 ];
 
+// ここでboardGroupを初期化
+boardGroup = drawBoard();
+stageGroup.add(boardGroup);
+
 function createTetromino() {
     const shapeIndex = Math.floor(Math.random() * tetrominoShapes.length);
     const shape = JSON.parse(JSON.stringify(tetrominoShapes[shapeIndex])); // Deep copy the shape
@@ -337,9 +426,9 @@ function createTetromino() {
         });
         const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
         
-        // 黒い線（エッジ）を追加
+        // 背景色と同じ線（エッジ）を追加
         const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
-        const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+        const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x1a1a3e, linewidth: 2 });
         const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
         cube.add(edges);
         
@@ -394,9 +483,9 @@ function updateNextPieceDisplay() {
         });
         const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
         
-        // 黒い線（エッジ）を追加
+        // 背景色と同じ線（エッジ）を追加
         const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
-        const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+        const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x1a1a3e, linewidth: 2 });
         const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
         cube.add(edges);
         
@@ -445,8 +534,10 @@ function animate() {
         const elapsed = currentTime - stageAnimation.startTime;
         const progress = Math.min(elapsed / stageAnimation.duration, 1);
         
-        // イージング関数（ease-out: 最初速く、最後ゆっくり）
-        const easeProgress = 1 - Math.pow(1 - progress, 3);
+        // イージング関数（ease-in-out: 最初と最後ゆっくり、真ん中速い）
+        const easeProgress = progress < 0.5 
+            ? 2 * progress * progress
+            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
         
         // ステージを回転（横向き→正面向き）
         stageGroup.rotation.y = Math.PI / 2 * (1 - easeProgress);
@@ -696,9 +787,9 @@ function rotateTetromino() {
             });
             const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
             
-            // 黒い線（エッジ）を追加
+            // 背景色と同じ線（エッジ）を追加
             const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
-            const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+            const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x1a1a3e, linewidth: 2 });
             const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
             cube.add(edges);
             
@@ -933,7 +1024,7 @@ function drawClearingEffect(progress) {
                 if (progress < 0.5) { // エッジも早めに消す
                     const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
                     const edgeMaterial = new THREE.LineBasicMaterial({ 
-                        color: 0x000000, 
+                        color: 0x1a1a3e, 
                         linewidth: 2,
                         transparent: true,
                         opacity: 1 - progress * 2
@@ -999,7 +1090,7 @@ function clearLines() {
         
         // ライン消去音を再生
         const sound = sparkSound.cloneNode();
-        sound.volume = 0.40;  // クローンにも音量を設定
+        sound.volume = 0.60;  // クローンにも音量を設定
         sound.play().catch(e => {
             console.log('ライン消去音の再生エラー:', e);
         });
@@ -1061,15 +1152,28 @@ function showGameOver() {
     
     // ゲーム画面にぼかしを追加
     renderer.domElement.classList.add('game-over-blur');
+    
+    // エンディングBGMを再生
+    endMusic.play().catch(e => {
+        console.log('エンディングBGM再生エラー:', e);
+    });
 }
 
 // ゲームをリセット
 function resetGame() {
-    // ボードをリセット
+    // ボードをリセット（デバッグモードの場合は特定の盤面になる）
     board = createBoard(numRows, numCols);
     stageGroup.remove(boardGroup);
     boardGroup = drawBoard();
     stageGroup.add(boardGroup);
+    
+    // エンディングBGMのみ停止（コンティニューBGMは流し続ける）
+    bgMusic.pause();
+    bgMusic.currentTime = 0;
+    endMusic.pause();
+    endMusic.currentTime = 0;
+    // continueMusic.pause();  // コンティニューBGMは停止しない
+    // continueMusic.currentTime = 0;
     
     // スコアをリセット
     score = 0;
@@ -1078,12 +1182,8 @@ function resetGame() {
     dropSpeed = 500;
     updateDisplay();
     
-    // ゲームオーバー画面を隠す
-    document.getElementById('game-over').style.display = 'none';
+    // ゲームオーバー画面は既にフェードアウトで非表示になっているのでスキップ
     isGameOver = false;
-    
-    // ぼかしを解除
-    renderer.domElement.classList.remove('game-over-blur');
     
     // 新しいテトリミノを生成
     stageGroup.remove(currentTetromino.group);
@@ -1097,22 +1197,24 @@ function resetGame() {
 
 // ゲーム開始機能
 function startGame() {
-    // スタート画面を隠す
-    document.getElementById('game-start').style.display = 'none';
-    
-    // ぼかしを解除
-    renderer.domElement.classList.remove('game-not-started');
+    // スタート画面はすでに非表示になっているのでスキップ
+    // BGMは停止しない（ステージ出現中も流し続ける）
     
     // ステージ回転アニメーションを開始
     stageAnimation = {
         startTime: Date.now(),
-        duration: 1800  // 1.8秒でステージが前進しながら回転
+        duration: 3000  // 3秒でステージが前進しながら回転（ゆっくり）
     };
     
     // ゲーム状態を初期化
     isGameStarted = true;
     isGameOver = false;
-    board = createBoard(numRows, numCols);
+    board = createBoard(numRows, numCols);  // 通常の空のボードで開始
+    
+    // ボードを再描画（デバッグ用の初期状態を表示）
+    stageGroup.remove(boardGroup);
+    boardGroup = drawBoard();
+    stageGroup.add(boardGroup);
     
     // 最初のテトリミノを生成
     currentTetromino = createTetromino();
@@ -1138,7 +1240,29 @@ const startBtn = document.getElementById('start-btn');
 if (startBtn) {
     startBtn.addEventListener('click', () => {
         console.log('Start button clicked');
-        startGame();
+        const gameStartDiv = document.getElementById('game-start');
+        
+        // フェードアウトアニメーションを設定
+        gameStartDiv.style.transition = 'opacity 0.5s ease';
+        gameStartDiv.style.opacity = '0';
+        
+        // ぼかしを解除
+        renderer.domElement.classList.remove('game-not-started');
+        
+        // BGMを再生
+        bgMusic.play().catch(e => {
+            console.log('BGM再生エラー:', e);
+        });
+        
+        // 0.5秒後に完全に非表示
+        setTimeout(() => {
+            gameStartDiv.style.display = 'none';
+        }, 500);
+        
+        // 1秒待ってからゲーム開始
+        setTimeout(() => {
+            startGame();
+        }, 1000);
     });
 } else {
     console.error('Start button not found');
@@ -1148,7 +1272,41 @@ if (startBtn) {
 const continueBtn = document.getElementById('continue-btn');
 if (continueBtn) {
     continueBtn.addEventListener('click', () => {
-        resetGame();
+        console.log('Continue button clicked');
+        
+        const gameOverDiv = document.getElementById('game-over');
+        
+        // フェードアウトアニメーションを設定
+        gameOverDiv.style.transition = 'opacity 0.5s ease';
+        gameOverDiv.style.opacity = '0';
+        
+        // ぼかしを0.5秒で解除
+        renderer.domElement.style.transition = 'filter 0.5s ease';
+        renderer.domElement.classList.remove('game-over-blur');
+        
+        // エンディングBGMを停止
+        endMusic.pause();
+        endMusic.currentTime = 0;
+        
+        // コンティニューBGMを再生
+        console.log('Playing continue music...');
+        console.log('Continue music volume:', continueMusic.volume);
+        continueMusic.currentTime = 0;  // 最初から再生
+        continueMusic.volume = 0.20;  // 音量を再設定
+        continueMusic.play().then(() => {
+            console.log('Continue music started successfully');
+            console.log('Is playing:', !continueMusic.paused);
+            console.log('Current volume:', continueMusic.volume);
+        }).catch(e => {
+            console.log('コンティニューBGM再生エラー:', e);
+        });
+        
+        // 0.5秒後に完全に非表示にしてゲームリセット
+        setTimeout(() => {
+            gameOverDiv.style.display = 'none';
+            gameOverDiv.style.opacity = '1';  // 次回のために戻す
+            resetGame();
+        }, 500);
     });
 }
 
