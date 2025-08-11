@@ -11,7 +11,7 @@ const camera = new THREE.PerspectiveCamera(
 );
 
 // カメラは最初から正面の位置に固定
-camera.position.set(4.5, 9.5, 15);  // 正面の位置
+camera.position.set(4.5, 9.5, 14);  // 正面の位置
 camera.lookAt(4.5, 9.5, 0);  // ステージの中心を見る
 
 const scene = new THREE.Scene();
@@ -97,7 +97,7 @@ stageGroup.add(backWallMesh);
 const sideWallMaterial = new THREE.MeshBasicMaterial({
     color: 0x4FC3F7,  // 明るいスカイブルー（線と同じ色）
     transparent: true,
-    opacity: 0.10,  // 10%の透明度
+    opacity: 0.20,  // 20%の透明度
     side: THREE.DoubleSide,
     depthWrite: false
 });
@@ -423,12 +423,19 @@ function createTetromino() {
             color: color,
             specular: 0x222222,
             shininess: 30,
+            transparent: true,
+            opacity: 0  // 初期状態は透明
         });
         const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
         
         // 背景色と同じ線（エッジ）を追加
         const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
-        const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x1a1a3e, linewidth: 2 });
+        const edgeMaterial = new THREE.LineBasicMaterial({ 
+            color: 0x1a1a3e, 
+            linewidth: 2,
+            transparent: true,
+            opacity: 0  // エッジも初期状態は透明
+        });
         const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
         cube.add(edges);
         
@@ -440,6 +447,9 @@ function createTetromino() {
         group.add(cube);
     }
 
+    // フェードインアニメーション
+    fadeInTetromino(group);
+    
     return { group, shape, color };
 }
 
@@ -680,6 +690,9 @@ function resetTetromino() {
     posX = 4 * blockSize;
     posY = (numRows - 1) * blockSize;
     stageGroup.add(currentTetromino.group);
+    
+    // 新しいテトリミノもフェードイン（ネクストから来たものなので再度フェードイン）
+    fadeInTetromino(currentTetromino.group);
     
     // ゲームオーバーチェック
     if (checkCollision()) {
@@ -1159,6 +1172,87 @@ function showGameOver() {
     });
 }
 
+// テトリミノをフェードイン
+function fadeInTetromino(group) {
+    const fadeStartTime = Date.now();
+    const fadeDuration = 300; // 0.3秒でフェードイン
+    
+    const fadeAnimation = () => {
+        const elapsed = Date.now() - fadeStartTime;
+        const progress = Math.min(elapsed / fadeDuration, 1);
+        
+        // グループ内の全ブロックの透明度を変更
+        group.traverse((child) => {
+            if (child.isMesh && child.material) {
+                child.material.opacity = progress;
+                
+                // エッジ（線）も一緒にフェードイン
+                child.children.forEach(edge => {
+                    if (edge.isLineSegments && edge.material) {
+                        edge.material.opacity = progress;
+                    }
+                });
+            }
+        });
+        
+        if (progress < 1) {
+            requestAnimationFrame(fadeAnimation);
+        }
+    };
+    
+    fadeAnimation();
+}
+
+// ボード上のブロックをランダムにフェードアウト
+function fadeOutBoardBlocks() {
+    if (!boardGroup) return;
+    
+    // ボード上の全ブロックを収集
+    const blocks = [];
+    boardGroup.traverse((child) => {
+        if (child.isMesh && child.material) {
+            blocks.push(child);
+        }
+    });
+    
+    // ブロックをシャッフル
+    const shuffledBlocks = blocks.sort(() => Math.random() - 0.5);
+    
+    // 各ブロックを順番にフェードアウト
+    shuffledBlocks.forEach((block, index) => {
+        setTimeout(() => {
+            // フェードアウトアニメーション
+            const fadeStartTime = Date.now();
+            const fadeDuration = 500; // 0.5秒
+            
+            const fadeAnimation = () => {
+                const elapsed = Date.now() - fadeStartTime;
+                const progress = Math.min(elapsed / fadeDuration, 1);
+                
+                // 透明度を変更
+                if (block.material) {
+                    block.material.transparent = true;
+                    block.material.opacity = 1 - progress;
+                    
+                    // エッジ（線）も一緒にフェードアウト
+                    block.children.forEach(child => {
+                        if (child.isLineSegments && child.material) {
+                            child.material.transparent = true;
+                            child.material.opacity = 1 - progress;
+                        }
+                    });
+                }
+                
+                if (progress < 1) {
+                    requestAnimationFrame(fadeAnimation);
+                }
+            };
+            
+            fadeAnimation();
+        }, index * Math.min(50, 1500 / blocks.length)); // ブロック数に応じて間隔を調整（最大1.5秒で全部消える）
+    });
+}
+
 // ゲームをリセット
 function resetGame() {
     // ボードをリセット（デバッグモードの場合は特定の盤面になる）
@@ -1221,6 +1315,17 @@ function startGame() {
     nextTetromino = createTetromino();
     stageGroup.add(currentTetromino.group);
     updateNextPieceDisplay();
+    
+    // 最初のブロックを隠しておく
+    currentTetromino.group.visible = false;
+    
+    // 2秒後に最初のブロックを表示してフェードイン
+    setTimeout(() => {
+        if (currentTetromino && currentTetromino.group) {
+            currentTetromino.group.visible = true;
+            fadeInTetromino(currentTetromino.group);
+        }
+    }, 2000);
     
     posX = 4 * blockSize;
     posY = (numRows - 1) * blockSize;
@@ -1301,12 +1406,28 @@ if (continueBtn) {
             console.log('コンティニューBGM再生エラー:', e);
         });
         
-        // 0.5秒後に完全に非表示にしてゲームリセット
+        // ブロックをランダムにフェードアウト
+        fadeOutBoardBlocks();
+        
+        // 1.5秒後に完全に非表示にしてゲームリセット（ブロックが消えるのを待つ）
         setTimeout(() => {
             gameOverDiv.style.display = 'none';
             gameOverDiv.style.opacity = '1';  // 次回のために戻す
             resetGame();
-        }, 500);
+            
+            // 最初のブロックを隠しておく
+            if (currentTetromino && currentTetromino.group) {
+                currentTetromino.group.visible = false;
+            }
+            
+            // さらに0.5秒後に最初のブロックを表示してフェードイン
+            setTimeout(() => {
+                if (currentTetromino && currentTetromino.group) {
+                    currentTetromino.group.visible = true;
+                    fadeInTetromino(currentTetromino.group);
+                }
+            }, 500);
+        }, 1500);
     });
 }
 
