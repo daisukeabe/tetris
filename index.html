@@ -7,17 +7,86 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Tetris</title>
     <style>
-        #container {
-            width: 100%;
-            height: 100vh;
+        body {
             margin: 0;
             padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #222;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #game-wrapper {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        #container {
+            width: 800px;
+            height: 800px;
+            border: 2px solid #00D9FF;
+        }
+        #info-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .info-box {
+            background-color: #1a1a3e;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #00D9FF;
+        }
+        .info-box h3 {
+            margin: 0 0 10px 0;
+            color: #00D9FF;
+        }
+        #next-piece {
+            width: 100px;
+            height: 100px;
+        }
+        #score, #lines, #level {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .controls {
+            font-size: 12px;
+            line-height: 1.5;
         }
     </style>
 </head>
 
 <body>
-    <div id="container"></div>
+    <div id="game-wrapper">
+        <div id="container"></div>
+        <div id="info-panel">
+            <div class="info-box">
+                <h3>NEXT</h3>
+                <div id="next-piece"></div>
+            </div>
+            <div class="info-box">
+                <h3>SCORE</h3>
+                <div id="score">0</div>
+            </div>
+            <div class="info-box">
+                <h3>LINES</h3>
+                <div id="lines">0</div>
+            </div>
+            <div class="info-box">
+                <h3>LEVEL</h3>
+                <div id="level">1</div>
+            </div>
+            <div class="info-box controls">
+                <h3>CONTROLS</h3>
+                <div>← → : Move</div>
+                <div>↑ / Z : Rotate</div>
+                <div>↓ : Soft Drop</div>
+                <div>Space : Hard Drop</div>
+            </div>
+        </div>
+    </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         const container = document.getElementById("container");
@@ -32,8 +101,8 @@
             1000
         );
 
-        camera.position.set(5, 0, 22);
-        camera.lookAt(5, 10, -5);
+        camera.position.set(4.5, 9.5, 25);
+        camera.lookAt(4.5, 9.5, 0);
 
         const scene = new THREE.Scene();
 
@@ -41,25 +110,89 @@
         const numCols = 10;
         const blockSize = 1;
 
+        // フレームをEdgesGeometryで作成（対角線なし）
         const frameGeometry = new THREE.BoxGeometry(
             numCols * blockSize,
             numRows * blockSize,
             blockSize
         );
-
-        const frameMaterial = new THREE.MeshBasicMaterial({
-            color: 0x4FEE83,
-            wireframe: true,
+        
+        // EdgesGeometryを使用（これは辺のみを作成し、対角線は含まない）
+        const edges = new THREE.EdgesGeometry(frameGeometry);
+        const lineMaterial = new THREE.LineBasicMaterial({ 
+            color: 0x00D9FF,  // スカイブルーに変更（テトリミノのI型と同じ色）
+            linewidth: 2 
         });
-
-        const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+        const frame = new THREE.LineSegments(edges, lineMaterial);
+        
         frame.position.set(
-            numCols * blockSize / 2,
-            numRows * blockSize / 2,
+            (numCols * blockSize / 2) - blockSize / 2,
+            (numRows * blockSize / 2) - blockSize / 2,
             0
         );
-
+        
         scene.add(frame);
+        
+        // 濃い紺色の背景を追加
+        const bgGeometry = new THREE.PlaneGeometry(
+            numCols * blockSize,
+            numRows * blockSize
+        );
+        const bgMaterial = new THREE.MeshBasicMaterial({
+            color: 0x0a0a2e,  // 濃い紺色
+            side: THREE.DoubleSide
+        });
+        const background = new THREE.Mesh(bgGeometry, bgMaterial);
+        background.position.set(
+            (numCols * blockSize / 2) - blockSize / 2,
+            (numRows * blockSize / 2) - blockSize / 2,
+            -blockSize / 2
+        );
+        scene.add(background);
+        
+        // 背景の外枠（青色）を追加
+        const bgEdges = new THREE.EdgesGeometry(bgGeometry);
+        const bgEdgeMaterial = new THREE.LineBasicMaterial({ 
+            color: 0x00D9FF,
+            linewidth: 2
+        });
+        const bgFrame = new THREE.LineSegments(bgEdges, bgEdgeMaterial);
+        bgFrame.position.copy(background.position);
+        scene.add(bgFrame);
+        
+        // 白いグリッド線を追加（背景と同じ深さに配置）
+        const gridGroup = new THREE.Group();
+        const gridMaterial = new THREE.LineBasicMaterial({ 
+            color: 0xffffff, 
+            opacity: 0.2,
+            transparent: true
+        });
+        
+        const gridZ = -blockSize / 2 + 0.01; // 背景の少し前
+        
+        // 縦線（ブロックの境界に配置）
+        for (let i = 0; i <= numCols; i++) {
+            const points = [];
+            const x = i * blockSize - blockSize / 2;
+            points.push(new THREE.Vector3(x, -blockSize / 2, gridZ));
+            points.push(new THREE.Vector3(x, numRows * blockSize - blockSize / 2, gridZ));
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(geometry, gridMaterial);
+            gridGroup.add(line);
+        }
+        
+        // 横線（ブロックの境界に配置）
+        for (let i = 0; i <= numRows; i++) {
+            const points = [];
+            const y = i * blockSize - blockSize / 2;
+            points.push(new THREE.Vector3(-blockSize / 2, y, gridZ));
+            points.push(new THREE.Vector3(numCols * blockSize - blockSize / 2, y, gridZ));
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(geometry, gridMaterial);
+            gridGroup.add(line);
+        }
+        
+        scene.add(gridGroup);
 
         function createBoard(rows, cols) {
             const matrix = [];
@@ -70,6 +203,26 @@
         }
 
         let board = createBoard(numRows, numCols);
+        
+        // ゲーム状態の変数
+        let score = 0;
+        let lines = 0;
+        let level = 1;
+        let nextTetromino = null;
+        
+        // Next piece用のシーンとレンダラー
+        const nextContainer = document.getElementById("next-piece");
+        const nextRenderer = new THREE.WebGLRenderer();
+        nextRenderer.setSize(100, 100);
+        nextContainer.appendChild(nextRenderer.domElement);
+        
+        const nextCamera = new THREE.PerspectiveCamera(55, 1, 0.1, 1000);
+        nextCamera.position.set(1.5, 1, 5);
+        nextCamera.lookAt(1.5, 1, 0);
+        
+        const nextScene = new THREE.Scene();
+        let nextPieceGroup = null;
+        let nextRotationGroup = null;
 
         function drawBoard() {
             const group = new THREE.Group();
@@ -83,9 +236,15 @@
                         );
                         const cubeMaterial = new THREE.MeshBasicMaterial({
                             color: tetrominoColors[board[row][col] - 1],
-                            wireframe: true,
                         });
                         const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+                        
+                        // 黒い線（エッジ）を追加
+                        const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
+                        const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+                        const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+                        cube.add(edges);
+                        
                         cube.position.set(
                             col * blockSize,
                             (numRows - 1 - row) * blockSize,
@@ -98,19 +257,8 @@
             return group;
         }
 
-
         let boardGroup = drawBoard();
         scene.add(boardGroup);
-
-        class Tetromino {
-            constructor() {
-                const shapeIndex = Math.floor(Math.random() * tetrominoShapes.length);
-                this.shape = tetrominoShapes[shapeIndex];
-                this.color = tetrominoColors[shapeIndex];
-                this.spawnX = Math.floor(numCols / 2) - 1;
-                this.spawnY = numRows - 1;
-            }
-        }
 
         // Tetromino shape definitions
         const tetrominoShapes = [
@@ -151,28 +299,26 @@
                 { x: 2, y: 0 },
             ],
             [
-                { x: 0, y: 0 },
                 { x: 1, y: 0 },
+                { x: 0, y: 1 },
                 { x: 1, y: 1 },
                 { x: 2, y: 1 },
             ],
         ];
 
-        // Tetromino colors
         const tetrominoColors = [
-            0x00FFFF,
-            0xFFFF00,
-            0x00FF00,
-            0xFF0000,
-            0x0000FF,
-            0xFFA500,
-            0x800080,
+            0x00D9FF,  // I - スカイブルー
+            0xFFD700,  // O - ゴールド
+            0x50E3C2,  // S - ミントグリーン
+            0xFF6B6B,  // Z - コーラルレッド
+            0x4169E1,  // J - ロイヤルブルー
+            0xFF8C42,  // L - サンセットオレンジ
+            0xB19CD9,  // T - ソフトパープル
         ];
 
-        // Create a random tetromino
         function createTetromino() {
             const shapeIndex = Math.floor(Math.random() * tetrominoShapes.length);
-            const shape = JSON.parse(JSON.stringify(tetrominoShapes[shapeIndex])); // Deep copy the shape to avoid modifying the original
+            const shape = JSON.parse(JSON.stringify(tetrominoShapes[shapeIndex])); // Deep copy the shape
             const color = tetrominoColors[shapeIndex];
 
             const group = new THREE.Group();
@@ -185,9 +331,15 @@
                 );
                 const cubeMaterial = new THREE.MeshBasicMaterial({
                     color: color,
-                    wireframe: true,
                 });
                 const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+                
+                // 黒い線（エッジ）を追加
+                const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
+                const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+                const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+                cube.add(edges);
+                
                 cube.position.set(
                     shape[i].x * blockSize,
                     shape[i].y * blockSize,
@@ -199,76 +351,125 @@
             return { group, shape, color };
         }
 
+        // 最初のテトリミノとネクストピースを生成
+        let currentTetromino = createTetromino();
+        nextTetromino = createTetromino();
+        scene.add(currentTetromino.group);
+        updateNextPieceDisplay();
 
-        let tetromino = createTetromino();
-        scene.add(tetromino);
-
-        let currentTetromino = new Tetromino();
-        let posX = currentTetromino.spawnX * blockSize;
-        let posY = currentTetromino.spawnY * blockSize;
-        let tetrominoShape = currentTetromino.shape;
-        let tetrominoColor = currentTetromino.color;
-
-        let fallingSpeed = 11;
-        let dropInterval = 1000 / (fallingSpeed / 2);
-        let prevTime = performance.now();
-        let dropCounter = 0;
+        let posX = 4 * blockSize;  // 初期位置を中央に設定
+        let posY = (numRows - 1) * blockSize;
+        let dropSpeed = 500; // ミリ秒ごとの落下速度
+        let lastDropTime = Date.now();
+        
+        // Next piece表示を更新
+        function updateNextPieceDisplay() {
+            if (nextRotationGroup) {
+                nextScene.remove(nextRotationGroup);
+            }
+            
+            nextPieceGroup = new THREE.Group();
+            nextRotationGroup = new THREE.Group();
+            
+            // テトリミノの境界を計算
+            let minX = Math.min(...nextTetromino.shape.map(block => block.x));
+            let maxX = Math.max(...nextTetromino.shape.map(block => block.x));
+            let minY = Math.min(...nextTetromino.shape.map(block => block.y));
+            let maxY = Math.max(...nextTetromino.shape.map(block => block.y));
+            
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+            
+            for (let i = 0; i < nextTetromino.shape.length; i++) {
+                const cubeGeometry = new THREE.BoxGeometry(
+                    blockSize,
+                    blockSize,
+                    blockSize
+                );
+                const cubeMaterial = new THREE.MeshBasicMaterial({
+                    color: nextTetromino.color,
+                });
+                const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+                
+                // 黒い線（エッジ）を追加
+                const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
+                const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+                const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+                cube.add(edges);
+                
+                // 中心を原点にして配置
+                cube.position.set(
+                    (nextTetromino.shape[i].x - centerX) * blockSize,
+                    (nextTetromino.shape[i].y - centerY) * blockSize,
+                    0
+                );
+                nextPieceGroup.add(cube);
+            }
+            
+            nextRotationGroup.add(nextPieceGroup);
+            nextRotationGroup.position.set(1.5, 1, 0);  // 表示エリアの中央に配置
+            nextScene.add(nextRotationGroup);
+        }
+        
+        // スコア表示を更新
+        function updateDisplay() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('lines').textContent = lines;
+            document.getElementById('level').textContent = level;
+        }
 
         function animate() {
             requestAnimationFrame(animate);
 
-            const currentTime = performance.now();
-            dropCounter += currentTime - prevTime;
+            const currentTime = Date.now();
+            if (currentTime - lastDropTime > dropSpeed) {
+                posY -= blockSize; // 下に移動
 
-            if (dropCounter > dropInterval) {
-                posY -= blockSize;
-                if (collides()) {
-                    posY += blockSize;
+                if (checkCollision()) {
+                    posY += blockSize; // 衝突した場合は元の位置に戻す
                     addToBoard();
-                    scene.remove(tetromino);
-
-                    // 新しいテトリミノを生成する
-                    const newTetromino = createTetromino();
-                    tetromino = newTetromino.group;
-                    tetrominoShape = JSON.parse(JSON.stringify(newTetromino.shape)); // Deep copy the shape to avoid modifying the original
-                    tetrominoColor = newTetromino.color;
-                    posX = Math.floor(numCols / 2) * blockSize;
-                    posY = (numRows - 1) * blockSize;
-                    scene.add(tetromino);
-
-                    if (collides()) {
-                        // ゲームオーバー処理
-                        posY = 18;
-                        board = createBoard(numRows, numCols);
-                    }
+                    resetTetromino();
                 }
-                tetromino.position.set(posX, posY, 0);
-                dropCounter = 0;
+
+                lastDropTime = currentTime;
             }
 
-            prevTime = currentTime;
+            // Tetrominoの位置を更新
+            currentTetromino.group.position.set(posX, posY, 0);
+
+            // メインシーンをレンダリング
             renderer.render(scene, camera);
+            
+            // ネクストピースをレンダリング
+            if (nextRotationGroup) {
+                nextRotationGroup.rotation.y += 0.01; // 回転アニメーション
+                nextRenderer.render(nextScene, nextCamera);
+            }
         }
 
-
-
-        function collides() {
+        function checkCollision() {
             const x = Math.floor(posX / blockSize);
-            const y = Math.floor((numRows - 1 - posY) / blockSize);
+            const y = Math.floor(posY / blockSize);
 
-            // ブロックが左右の壁に衝突したとき
-            if (posX < 0 || posX >= numCols * blockSize) {
-                return true;
-            }
+            // テトリミノの各ブロック位置を確認
+            for (const block of currentTetromino.shape) {
+                const checkX = x + block.x;
+                const checkY = numRows - 1 - (y + block.y);
 
-            // ブロックが床に着いたとき
-            if (posY < 0) {
-                return true;
-            }
+                // 底に達した場合
+                if (checkY >= numRows) {
+                    return true;
+                }
 
-            // ブロックが積み重なったとき
-            if (board[y][x]) {
-                return true;
+                // 左右の壁を超えた場合
+                if (checkX < 0 || checkX >= numCols) {
+                    return true;
+                }
+
+                // 既存のブロックに衝突した場合
+                if (checkY >= 0 && checkY < numRows && board[checkY][checkX] !== 0) {
+                    return true;
+                }
             }
 
             return false;
@@ -276,67 +477,201 @@
 
         function addToBoard() {
             const x = Math.floor(posX / blockSize);
-            const y = Math.floor((numRows - 1 - posY) / blockSize);
-            const colorIndex = tetrominoColors.indexOf(tetrominoColor);
+            const y = Math.floor(posY / blockSize);
+            const colorIndex = tetrominoColors.indexOf(currentTetromino.color) + 1;
 
-            for (let i = 0; i < tetrominoShape.length; i++) {
-                const newX = x + tetrominoShape[i].x;
-                const newY = y - tetrominoShape[i].y;
+            for (const block of currentTetromino.shape) {
+                const boardX = x + block.x;
+                const boardY = numRows - 1 - (y + block.y);
 
-                if (newY >= 0 && newY < numRows && newX >= 0 && newX < numCols) {
-                    board[newY][newX] = colorIndex + 1;
+                if (boardY >= 0 && boardY < numRows && boardX >= 0 && boardX < numCols) {
+                    board[boardY][boardX] = colorIndex;
                 }
             }
 
+            // ライン消去をチェック
+            clearLines();
+            
             scene.remove(boardGroup);
             boardGroup = drawBoard();
             scene.add(boardGroup);
         }
 
-        function rotate(matrix, direction) {
-    const rotated = matrix[0].map((_, i) => matrix.map(row => row[i]));
-    if (direction > 0) {
-        return rotated.map(row => row.reverse());
-    } else {
-        return rotated.reverse();
-    }
-}
+        function resetTetromino() {
+            scene.remove(currentTetromino.group); // 前のテトリミノを削除
+            
+            // ネクストピースを現在のピースにする
+            currentTetromino = nextTetromino;
+            nextTetromino = createTetromino();
+            updateNextPieceDisplay();
+            
+            posX = 4 * blockSize;
+            posY = (numRows - 1) * blockSize;
+            scene.add(currentTetromino.group);
+            
+            // ゲームオーバーチェック
+            if (checkCollision()) {
+                alert(`Game Over!\nScore: ${score}\nLines: ${lines}\nLevel: ${level}`);
+                // ボードをリセット
+                board = createBoard(numRows, numCols);
+                scene.remove(boardGroup);
+                boardGroup = drawBoard();
+                scene.add(boardGroup);
+                
+                // スコアをリセット
+                score = 0;
+                lines = 0;
+                level = 1;
+                dropSpeed = 500;
+                updateDisplay();
+            }
+        }
 
-document.addEventListener("keydown", (event) => {
-    if (event.key === "ArrowLeft") {
-        posX -= blockSize;
-        if (collides()) {
-            posX += blockSize;
+        // キーボード操作の追加
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowLeft') {
+                // 左移動
+                posX -= blockSize;
+                if (checkCollision()) {
+                    posX += blockSize; // 衝突したら戻す
+                }
+            } else if (event.key === 'ArrowRight') {
+                // 右移動
+                posX += blockSize;
+                if (checkCollision()) {
+                    posX -= blockSize; // 衝突したら戻す
+                }
+            } else if (event.key === 'ArrowDown') {
+                // 高速落下
+                posY -= blockSize;
+                if (checkCollision()) {
+                    posY += blockSize;
+                    addToBoard();
+                    resetTetromino();
+                }
+            } else if (event.key === ' ') {
+                // 瞬間落下（ハードドロップ）
+                while (!checkCollision()) {
+                    posY -= blockSize;
+                }
+                posY += blockSize; // 衝突位置から1つ戻す
+                addToBoard();
+                resetTetromino();
+            } else if (event.key === 'ArrowUp' || event.key === 'z' || event.key === 'Z') {
+                // 回転
+                rotateTetromino();
+            }
+            
+            // Tetrominoの位置を即座に更新
+            currentTetromino.group.position.set(posX, posY, 0);
+        });
+
+        // テトリミノの回転機能
+        function rotateTetromino() {
+            // 元の形状を保存
+            const originalShape = JSON.parse(JSON.stringify(currentTetromino.shape));
+            
+            // 回転の中心を計算
+            let minX = Math.min(...currentTetromino.shape.map(block => block.x));
+            let maxX = Math.max(...currentTetromino.shape.map(block => block.x));
+            let minY = Math.min(...currentTetromino.shape.map(block => block.y));
+            let maxY = Math.max(...currentTetromino.shape.map(block => block.y));
+            let centerX = (minX + maxX) / 2;
+            let centerY = (minY + maxY) / 2;
+            
+            // 形状を回転（時計回り）
+            for (let i = 0; i < currentTetromino.shape.length; i++) {
+                let relX = currentTetromino.shape[i].x - centerX;
+                let relY = currentTetromino.shape[i].y - centerY;
+                currentTetromino.shape[i].x = Math.round(-relY + centerX);
+                currentTetromino.shape[i].y = Math.round(relX + centerY);
+            }
+            
+            // 衝突チェック
+            if (checkCollision()) {
+                // 衝突したら元に戻す
+                currentTetromino.shape = originalShape;
+            } else {
+                // 回転が成功したら3Dオブジェクトを更新
+                scene.remove(currentTetromino.group);
+                const color = currentTetromino.color;
+                const group = new THREE.Group();
+                
+                for (let i = 0; i < currentTetromino.shape.length; i++) {
+                    const cubeGeometry = new THREE.BoxGeometry(
+                        blockSize,
+                        blockSize,
+                        blockSize
+                    );
+                    const cubeMaterial = new THREE.MeshBasicMaterial({
+                        color: color,
+                    });
+                    const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+                    
+                    // 黒い線（エッジ）を追加
+                    const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
+                    const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+                    const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+                    cube.add(edges);
+                    
+                    cube.position.set(
+                        currentTetromino.shape[i].x * blockSize,
+                        currentTetromino.shape[i].y * blockSize,
+                        0
+                    );
+                    group.add(cube);
+                }
+                
+                currentTetromino.group = group;
+                scene.add(currentTetromino.group);
+                currentTetromino.group.position.set(posX, posY, 0);
+            }
         }
-        tetromino.position.set(posX, posY, 0);
-    } else if (event.key === "ArrowRight") {
-        posX += blockSize;
-        if (collides()) {
-            posX -= blockSize;
+
+        // ライン消去機能の追加
+        function clearLines() {
+            let linesCleared = 0;
+            
+            for (let row = numRows - 1; row >= 0; row--) {
+                let isFullLine = true;
+                for (let col = 0; col < numCols; col++) {
+                    if (board[row][col] === 0) {
+                        isFullLine = false;
+                        break;
+                    }
+                }
+                
+                if (isFullLine) {
+                    // ラインを削除
+                    board.splice(row, 1);
+                    // 新しい空のラインを上部に追加
+                    board.unshift(new Array(numCols).fill(0));
+                    linesCleared++;
+                    row++; // 同じ行を再チェック
+                }
+            }
+            
+            if (linesCleared > 0) {
+                // スコア計算（テトリス方式）
+                const lineScores = [0, 100, 300, 500, 800];
+                score += lineScores[Math.min(linesCleared, 4)] * level;
+                lines += linesCleared;
+                
+                // レベルアップ（10ライン毎）
+                const newLevel = Math.floor(lines / 10) + 1;
+                if (newLevel > level) {
+                    level = newLevel;
+                    dropSpeed = Math.max(100, 500 - (level - 1) * 50); // レベルが上がるとスピードアップ
+                }
+                
+                updateDisplay();
+                
+                // ボードを再描画
+                scene.remove(boardGroup);
+                boardGroup = drawBoard();
+                scene.add(boardGroup);
+            }
         }
-        tetromino.position.set(posX, posY, 0);
-    } else if (event.key === "ArrowUp") {
-        const tempShape = JSON.parse(JSON.stringify(tetrominoShape));
-        tetrominoShape = rotate(tetrominoShape, 1);
-        if (collides()) {
-            tetrominoShape = tempShape;
-        } else {
-            scene.remove(tetromino);
-            const newTetromino = createTetromino();
-            tetromino = newTetromino.group;
-            tetrominoShape = JSON.parse(JSON.stringify(newTetromino.shape));
-            tetrominoColor = newTetromino.color;
-            tetromino.position.set(posX, posY, 0);
-            scene.add(tetromino);
-        }
-    } else if (event.key === "ArrowDown") {
-        posY -= blockSize;
-        if (collides()) {
-            posY += blockSize;
-        }
-        tetromino.position.set(posX, posY, 0);
-    }
-});
 
         animate();
     </script>
