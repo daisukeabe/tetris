@@ -223,6 +223,11 @@
         const nextScene = new THREE.Scene();
         let nextPieceGroup = null;
         let nextRotationGroup = null;
+        
+        // ライン消去エフェクト用の変数
+        let clearingLines = [];
+        let clearAnimationStart = null;
+        const clearAnimationDuration = 500; // 0.5秒
 
         function drawBoard() {
             const group = new THREE.Group();
@@ -418,24 +423,50 @@
             document.getElementById('level').textContent = level;
         }
 
+        let clearEffectGroup = null;
+        
         function animate() {
             requestAnimationFrame(animate);
 
             const currentTime = Date.now();
-            if (currentTime - lastDropTime > dropSpeed) {
-                posY -= blockSize; // 下に移動
+            
+            // ライン消去アニメーション中は落下を一時停止
+            if (clearAnimationStart) {
+                const elapsed = currentTime - clearAnimationStart;
+                const progress = Math.min(elapsed / clearAnimationDuration, 1);
+                
+                // 前のエフェクトを削除
+                if (clearEffectGroup) {
+                    scene.remove(clearEffectGroup);
+                }
+                
+                // 新しいエフェクトを描画
+                clearEffectGroup = drawClearingEffect(progress);
+                scene.add(clearEffectGroup);
+                
+                // アニメーション終了
+                if (progress >= 1) {
+                    scene.remove(clearEffectGroup);
+                    clearEffectGroup = null;
+                    finishLineClear();
+                }
+            } else {
+                // 通常の落下処理
+                if (currentTime - lastDropTime > dropSpeed) {
+                    posY -= blockSize; // 下に移動
 
-                if (checkCollision()) {
-                    posY += blockSize; // 衝突した場合は元の位置に戻す
-                    addToBoard();
-                    resetTetromino();
+                    if (checkCollision()) {
+                        posY += blockSize; // 衝突した場合は元の位置に戻す
+                        addToBoard();
+                        resetTetromino();
+                    }
+
+                    lastDropTime = currentTime;
                 }
 
-                lastDropTime = currentTime;
+                // Tetrominoの位置を更新
+                currentTetromino.group.position.set(posX, posY, 0);
             }
-
-            // Tetrominoの位置を更新
-            currentTetromino.group.position.set(posX, posY, 0);
 
             // メインシーンをレンダリング
             renderer.render(scene, camera);
@@ -529,6 +560,9 @@
 
         // キーボード操作の追加
         document.addEventListener('keydown', (event) => {
+            // ライン消去アニメーション中は操作を無効化
+            if (clearAnimationStart) return;
+            
             if (event.key === 'ArrowLeft') {
                 // 左移動
                 posX -= blockSize;
@@ -628,9 +662,171 @@
             }
         }
 
+        // パーティクルのランダム速度を保存
+        const particleVelocities = new Map();
+        
+        // ライン消去エフェクトを描画
+        function drawClearingEffect(progress) {
+            const effectGroup = new THREE.Group();
+            
+            for (const rowIndex of clearingLines) {
+                for (let col = 0; col < numCols; col++) {
+                    if (board[rowIndex][col]) {
+                        const blockKey = `${rowIndex}-${col}`;
+                        
+                        // 花火のようなパーティクル
+                        const particleCount = 15; // より多くのパーティクル
+                        
+                        // 初回のみ速度を生成
+                        if (!particleVelocities.has(blockKey)) {
+                            const velocities = [];
+                            for (let p = 0; p < particleCount; p++) {
+                                velocities.push({
+                                    x: (Math.random() - 0.5) * 10,
+                                    y: (Math.random() - 0.3) * 12, // 上方向に偏る
+                                    z: (Math.random() - 0.5) * 8
+                                });
+                            }
+                            particleVelocities.set(blockKey, velocities);
+                        }
+                        
+                        const velocities = particleVelocities.get(blockKey);
+                        
+                        for (let p = 0; p < particleCount; p++) {
+                            // パーティクルサイズをランダムに
+                            const size = Math.random() * 0.2 + 0.1;
+                            const particleGeometry = new THREE.SphereGeometry(
+                                blockSize * size * (1 - progress * 0.5)
+                            );
+                            
+                            // 花火のような色（黄色、オレンジ、赤、白）
+                            const colors = [
+                                0xFFFF00, // 黄色
+                                0xFFA500, // オレンジ
+                                0xFF4500, // 赤オレンジ
+                                0xFF0000, // 赤
+                                0xFFFFFF, // 白
+                                0x00FFFF, // シアン
+                                0xFF00FF  // マゼンタ
+                            ];
+                            const color = colors[Math.floor(Math.random() * colors.length)];
+                            
+                            const particleMaterial = new THREE.MeshBasicMaterial({
+                                color: color,
+                                transparent: true,
+                                opacity: (1 - progress) * (0.8 + Math.random() * 0.2),
+                                emissive: color,
+                                emissiveIntensity: 1
+                            });
+                            
+                            const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+                            
+                            // 重力を考慮した物理的な動き
+                            const vel = velocities[p];
+                            const gravity = -9.8;
+                            const time = progress * 0.5;
+                            
+                            particle.position.set(
+                                col * blockSize + vel.x * time,
+                                (numRows - 1 - rowIndex) * blockSize + vel.y * time + 0.5 * gravity * time * time,
+                                vel.z * time
+                            );
+                            
+                            // 光る尾を作る
+                            if (progress < 0.7) {
+                                const trailGeometry = new THREE.CylinderGeometry(
+                                    blockSize * 0.02,
+                                    blockSize * 0.05,
+                                    blockSize * 0.3 * (1 - progress)
+                                );
+                                const trailMaterial = new THREE.MeshBasicMaterial({
+                                    color: color,
+                                    transparent: true,
+                                    opacity: (1 - progress) * 0.5,
+                                    emissive: color,
+                                    emissiveIntensity: 0.5
+                                });
+                                const trail = new THREE.Mesh(trailGeometry, trailMaterial);
+                                trail.position.copy(particle.position);
+                                trail.lookAt(
+                                    col * blockSize,
+                                    (numRows - 1 - rowIndex) * blockSize,
+                                    0
+                                );
+                                effectGroup.add(trail);
+                            }
+                            
+                            // パーティクルを回転
+                            particle.rotation.x = Math.random() * Math.PI * 8 * progress;
+                            particle.rotation.y = Math.random() * Math.PI * 8 * progress;
+                            particle.rotation.z = Math.random() * Math.PI * 8 * progress;
+                            
+                            effectGroup.add(particle);
+                        }
+                        
+                        // 爆発の中心に明るい閃光
+                        if (progress < 0.3) {
+                            const flashGeometry = new THREE.SphereGeometry(
+                                blockSize * (1 - progress * 3)
+                            );
+                            const flashMaterial = new THREE.MeshBasicMaterial({
+                                color: 0xFFFFFF,
+                                transparent: true,
+                                opacity: (1 - progress * 3) * 0.8,
+                                emissive: 0xFFFFFF,
+                                emissiveIntensity: 2
+                            });
+                            const flash = new THREE.Mesh(flashGeometry, flashMaterial);
+                            flash.position.set(
+                                col * blockSize,
+                                (numRows - 1 - rowIndex) * blockSize,
+                                0
+                            );
+                            effectGroup.add(flash);
+                        }
+                        
+                        // 元のブロックをフェードアウト（サイズは維持）
+                        const cubeGeometry = new THREE.BoxGeometry(
+                            blockSize,
+                            blockSize,
+                            blockSize
+                        );
+                        const cubeMaterial = new THREE.MeshBasicMaterial({
+                            color: tetrominoColors[board[rowIndex][col] - 1],
+                            transparent: true,
+                            opacity: Math.max(0, 1 - progress * 2) // 早めにフェードアウト
+                        });
+                        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+                        
+                        if (progress < 0.5) { // エッジも早めに消す
+                            const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
+                            const edgeMaterial = new THREE.LineBasicMaterial({ 
+                                color: 0x000000, 
+                                linewidth: 2,
+                                transparent: true,
+                                opacity: 1 - progress * 2
+                            });
+                            const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+                            cube.add(edges);
+                        }
+                        
+                        cube.position.set(
+                            col * blockSize,
+                            (numRows - 1 - rowIndex) * blockSize,
+                            0
+                        );
+                        
+                        effectGroup.add(cube);
+                    }
+                }
+            }
+            
+            return effectGroup;
+        }
+
         // ライン消去機能の追加
         function clearLines() {
-            let linesCleared = 0;
+            const linesToClear = [];
             
             for (let row = numRows - 1; row >= 0; row--) {
                 let isFullLine = true;
@@ -642,20 +838,19 @@
                 }
                 
                 if (isFullLine) {
-                    // ラインを削除
-                    board.splice(row, 1);
-                    // 新しい空のラインを上部に追加
-                    board.unshift(new Array(numCols).fill(0));
-                    linesCleared++;
-                    row++; // 同じ行を再チェック
+                    linesToClear.push(row);
                 }
             }
             
-            if (linesCleared > 0) {
+            if (linesToClear.length > 0) {
+                // エフェクトアニメーションを開始
+                clearingLines = linesToClear;
+                clearAnimationStart = Date.now();
+                
                 // スコア計算（テトリス方式）
                 const lineScores = [0, 100, 300, 500, 800];
-                score += lineScores[Math.min(linesCleared, 4)] * level;
-                lines += linesCleared;
+                score += lineScores[Math.min(linesToClear.length, 4)] * level;
+                lines += linesToClear.length;
                 
                 // レベルアップ（10ライン毎）
                 const newLevel = Math.floor(lines / 10) + 1;
@@ -665,12 +860,27 @@
                 }
                 
                 updateDisplay();
-                
-                // ボードを再描画
-                scene.remove(boardGroup);
-                boardGroup = drawBoard();
-                scene.add(boardGroup);
             }
+        }
+        
+        // アニメーション終了時にラインを実際に削除
+        function finishLineClear() {
+            // ラインを削除（逆順でソートして下から削除）
+            clearingLines.sort((a, b) => b - a);
+            for (const row of clearingLines) {
+                board.splice(row, 1);
+                board.unshift(new Array(numCols).fill(0));
+            }
+            
+            // ボードを再描画
+            scene.remove(boardGroup);
+            boardGroup = drawBoard();
+            scene.add(boardGroup);
+            
+            // エフェクト状態をリセット
+            clearingLines = [];
+            clearAnimationStart = null;
+            particleVelocities.clear(); // パーティクル速度もクリア
         }
 
         animate();
