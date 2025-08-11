@@ -26,6 +26,16 @@ scene.add(stageGroup);
 // ステージアニメーション用の変数
 let stageAnimation = null;
 
+// サウンドエフェクトの初期化
+const putSound = new Audio('sound/put.m4a');
+const sparkSound = new Audio('sound/spark.m4a');
+putSound.volume = 0.20;  // 音量を20%に設定
+sparkSound.volume = 0.40;  // 音量を40%に設定
+
+// 音声ファイルをプリロード
+putSound.load();
+sparkSound.load();
+
 // ライティングを追加して立体感を強調
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);  // 環境光を少し強く
 scene.add(ambientLight);
@@ -83,6 +93,47 @@ background.position.set(
     -blockSize / 2
 );
 stageGroup.add(background);
+
+// 背景画像をランダムに選択して表示
+const backgroundImages = ['bg01.jpg', 'bg02.jpg', 'bg03.jpg', 'bg04.jpg'];
+const randomBgImage = backgroundImages[Math.floor(Math.random() * backgroundImages.length)];
+
+// 背景画像のメッシュを保存する変数
+let bgImageMesh = null;
+let bgImageTargetRotation = 0;  // 目標の回転角度
+let bgImageCurrentRotation = 0;  // 現在の回転角度
+
+// テクスチャローダーで画像を読み込み
+const textureLoader = new THREE.TextureLoader();
+textureLoader.load(
+    `img/${randomBgImage}`,
+    function(texture) {
+        // 背景画像用の大きな平面を作成
+        const bgImageGeometry = new THREE.PlaneGeometry(
+            numCols * blockSize * 8,  // さらに大きく
+            numRows * blockSize * 4   // 縦横比を調整
+        );
+        const bgImageMaterial = new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true,
+            opacity: 0.7,  // 適度な透明度
+            side: THREE.DoubleSide
+        });
+        bgImageMesh = new THREE.Mesh(bgImageGeometry, bgImageMaterial);
+        bgImageMesh.position.set(
+            (numCols * blockSize / 2) - blockSize / 2,
+            (numRows * blockSize / 2) - blockSize / 2,
+            -blockSize * 10  // 後ろに配置
+        );
+        scene.add(bgImageMesh);  // sceneに直接追加（stageGroupではなく）
+        
+        console.log('背景画像を読み込みました:', randomBgImage);
+    },
+    undefined,
+    function(error) {
+        console.error('背景画像の読み込みエラー:', error);
+    }
+);
 
 // 背景の外枠（青色）を追加
 const bgEdges = new THREE.EdgesGeometry(bgGeometry);
@@ -377,6 +428,18 @@ function animate() {
 
     const currentTime = Date.now();
     
+    // 背景画像の傾き機能を無効化
+    // if (bgImageMesh) {
+    //     // 現在の回転を目標値に近づける（スムーズな動き）
+    //     bgImageCurrentRotation += (bgImageTargetRotation - bgImageCurrentRotation) * 0.15;
+    //     bgImageMesh.rotation.y = bgImageCurrentRotation;  // Y軸で回転
+    //     
+    //     // キーが押されていない場合は中心に戻す
+    //     if (Math.abs(bgImageTargetRotation) > 0.001) {
+    //         bgImageTargetRotation *= 0.9;  // 徐々に中心に戻る
+    //     }
+    // }
+    
     // ステージアニメーション処理
     if (stageAnimation) {
         const elapsed = currentTime - stageAnimation.startTime;
@@ -495,7 +558,19 @@ function addToBoard() {
         }
     }
 
-    // ライン消去をチェック
+    // ライン消去をチェック（消去があるか確認）
+    const hasLinesToClear = checkForFullLines();
+    
+    // ラインが消えない時のみ着地音を再生
+    if (!hasLinesToClear) {
+        const sound = putSound.cloneNode();
+        sound.volume = 0.20;  // クローンにも音量を設定
+        sound.play().catch(e => {
+            console.log('着地音の再生エラー:', e);
+        });
+    }
+    
+    // ライン消去処理
     clearLines();
     
     stageGroup.remove(boardGroup);
@@ -532,12 +607,16 @@ document.addEventListener('keydown', (event) => {
         if (checkCollision()) {
             posX += blockSize; // 衝突したら戻す
         }
+        // 背景を左に回転（無効化）
+        // bgImageTargetRotation = 0.1;  // 左移動時は右に少し回転（視差効果）
     } else if (event.key === 'ArrowRight') {
         // 右移動
         posX += blockSize;
         if (checkCollision()) {
             posX -= blockSize; // 衝突したら戻す
         }
+        // 背景を右に回転（無効化）
+        // bgImageTargetRotation = -0.1;  // 右移動時は左に少し回転（視差効果）
     } else if (event.key === 'ArrowDown') {
         // 高速落下
         posY -= blockSize;
@@ -562,6 +641,16 @@ document.addEventListener('keydown', (event) => {
     // Tetrominoの位置を即座に更新
     currentTetromino.group.position.set(posX, posY, 0);
 });
+
+// キーを離した時の処理（背景の動き無効化）
+// document.addEventListener('keyup', (event) => {
+//     if (!isGameStarted || isGameOver) return;
+//     
+//     // 左右キーを離したら背景を中心に戻す
+//     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+//         bgImageTargetRotation = 0;  // 中心に戻す
+//     }
+// });
 
 // テトリミノの回転機能
 function rotateTetromino() {
@@ -677,9 +766,7 @@ function drawClearingEffect(progress) {
         const flashMaterial = new THREE.MeshBasicMaterial({
             color: 0xFFD700,
             transparent: true,
-            opacity: (1 - progress * 5) * 0.3,
-            emissive: 0xFFD700,
-            emissiveIntensity: 2
+            opacity: (1 - progress * 5) * 0.3
         });
         const screenFlash = new THREE.Mesh(flashGeometry, flashMaterial);
         screenFlash.position.set(
@@ -736,9 +823,7 @@ function drawClearingEffect(progress) {
                     const particleMaterial = new THREE.MeshBasicMaterial({
                         color: particleColor,
                         transparent: true,
-                        opacity: (1 - progress) * 0.9,
-                        emissive: particleColor,
-                        emissiveIntensity: 2
+                        opacity: (1 - progress) * 0.9
                     });
                     
                     const particle = new THREE.Mesh(particleGeometry, particleMaterial);
@@ -809,9 +894,7 @@ function drawClearingEffect(progress) {
                     const flashMaterial = new THREE.MeshBasicMaterial({
                         color: lineCount === 4 ? 0xFFD700 : 0xFFFFFF, // テトリス時は金色
                         transparent: true,
-                        opacity: (1 - progress * 3) * (lineCount === 4 ? 1 : 0.8),
-                        emissive: lineCount === 4 ? 0xFFD700 : 0xFFFFFF,
-                        emissiveIntensity: lineCount === 4 ? 3 : 2
+                        opacity: (1 - progress * 3) * (lineCount === 4 ? 1 : 0.8)
                     });
                     const flash = new THREE.Mesh(flashGeometry, flashMaterial);
                     flash.position.set(
@@ -843,9 +926,7 @@ function drawClearingEffect(progress) {
                 const cubeMaterial = new THREE.MeshBasicMaterial({
                     color: blinkColor,
                     transparent: true,
-                    opacity: fadeOut * blinkIntensity,
-                    emissive: blinkColor,
-                    emissiveIntensity: blinkIntensity
+                    opacity: fadeOut * blinkIntensity
                 });
                 const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
                 
@@ -875,6 +956,24 @@ function drawClearingEffect(progress) {
     return effectGroup;
 }
 
+// フルラインがあるかチェックする関数
+function checkForFullLines() {
+    for (let row = numRows - 1; row >= 0; row--) {
+        let isFullLine = true;
+        for (let col = 0; col < numCols; col++) {
+            if (board[row][col] === 0) {
+                isFullLine = false;
+                break;
+            }
+        }
+        
+        if (isFullLine) {
+            return true;  // フルラインが見つかった
+        }
+    }
+    return false;  // フルラインなし
+}
+
 // ライン消去機能の追加
 function clearLines() {
     const linesToClear = [];
@@ -897,6 +996,13 @@ function clearLines() {
         // エフェクトアニメーションを開始
         clearingLines = linesToClear;
         clearAnimationStart = Date.now();
+        
+        // ライン消去音を再生
+        const sound = sparkSound.cloneNode();
+        sound.volume = 0.40;  // クローンにも音量を設定
+        sound.play().catch(e => {
+            console.log('ライン消去音の再生エラー:', e);
+        });
         
         // スコア計算（テトリス方式）
         const lineScores = [0, 100, 300, 500, 800];
