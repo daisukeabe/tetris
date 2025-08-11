@@ -308,6 +308,12 @@ const clearAnimationDuration = 500; // 0.5秒
 let isGameOver = false; // ゲームオーバー状態
 let isGameStarted = false; // ゲーム開始状態
 
+// カメラシェイク用の変数
+let cameraShakeStart = null;
+let cameraShakeDuration = 0;
+let cameraShakeIntensity = 0;
+const originalCameraPosition = { x: 4.5, y: 9.5, z: 14 };
+
 function drawBoard() {
     const group = new THREE.Group();
     for (let row = 0; row < numRows; row++) {
@@ -607,6 +613,30 @@ function animate() {
         currentTetromino.group.position.set(posX, posY, 0);
     }
 
+    // カメラシェイク処理
+    if (cameraShakeStart) {
+        const elapsed = currentTime - cameraShakeStart;
+        const progress = Math.min(elapsed / cameraShakeDuration, 1);
+        
+        if (progress < 1) {
+            // シェイクの強度を時間とともに減衰
+            const currentIntensity = cameraShakeIntensity * (1 - progress);
+            
+            // ランダムな振動を生成
+            const shakeX = (Math.random() - 0.5) * currentIntensity;
+            const shakeY = (Math.random() - 0.5) * currentIntensity;
+            
+            // カメラ位置を振動させる
+            camera.position.x = originalCameraPosition.x + shakeX;
+            camera.position.y = originalCameraPosition.y + shakeY;
+        } else {
+            // シェイク終了後、元の位置に戻す
+            camera.position.x = originalCameraPosition.x;
+            camera.position.y = originalCameraPosition.y;
+            cameraShakeStart = null;
+        }
+    }
+    
     // メインシーンをレンダリング
     renderer.render(scene, camera);
     
@@ -1100,6 +1130,11 @@ function clearLines() {
         // エフェクトアニメーションを開始
         clearingLines = linesToClear;
         clearAnimationStart = Date.now();
+        
+        // カメラシェイクを開始（ライン数に応じて強度を変える）
+        cameraShakeStart = Date.now();
+        cameraShakeDuration = 300; // 0.3秒
+        cameraShakeIntensity = linesToClear.length * 0.1; // ライン数×0.1の強度
         
         // ライン消去音を再生
         const sound = sparkSound.cloneNode();
