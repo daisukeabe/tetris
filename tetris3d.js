@@ -875,14 +875,14 @@ function drawClearingEffect(progress) {
             particleSizeMultiplier = 1.0;
             break;
         case 3:
-            particlesPerBlock = 10;    // 3段: 派手（減らした）
+            particlesPerBlock = 10;    // 3段: 最大の派手さ
             particleSpeedMultiplier = 1.3;
             particleSizeMultiplier = 1.2;
             break;
         case 4:
-            particlesPerBlock = 12;    // 4段(テトリス): 超派手（大幅に減らした）
-            particleSpeedMultiplier = 1.6;
-            particleSizeMultiplier = 1.5;
+            particlesPerBlock = 10;    // 4段(テトリス): 3段と同じに
+            particleSpeedMultiplier = 1.3;
+            particleSizeMultiplier = 1.2;
             break;
         default:
             particlesPerBlock = 10;
