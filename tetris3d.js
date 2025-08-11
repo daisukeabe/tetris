@@ -29,7 +29,7 @@ let stageAnimation = null;
 // サウンドエフェクトの初期化
 const putSound = new Audio('sound/put.m4a');
 const sparkSound = new Audio('sound/spark.m4a');
-putSound.volume = 0.20;  // 音量を20%に設定
+putSound.volume = 0.30;  // 音量を30%に設定
 sparkSound.volume = 0.40;  // 音量を40%に設定
 
 // 音声ファイルをプリロード
@@ -308,13 +308,13 @@ const tetrominoShapes = [
 ];
 
 const tetrominoColors = [
-    0x00D9FF,  // I - スカイブルー
-    0xFFD700,  // O - ゴールド
-    0x50E3C2,  // S - ミントグリーン
-    0xFF6B6B,  // Z - コーラルレッド
-    0x4169E1,  // J - ロイヤルブルー
-    0xFF8C42,  // L - サンセットオレンジ
-    0xB19CD9,  // T - ソフトパープル
+    0x00F0FF,  // I - シアン（明るい水色）
+    0xFFEB3B,  // O - イエロー（鮮やかな黄色）
+    0x76FF03,  // S - ライムグリーン（明るい緑）
+    0xF44336,  // Z - レッド（鮮明な赤）
+    0x2196F3,  // J - ブルー（鮮やかな青）
+    0xFF9800,  // L - オレンジ（ビビッドオレンジ）
+    0x9C27B0,  // T - パープル（鮮やかな紫）
 ];
 
 function createTetromino() {
@@ -564,7 +564,7 @@ function addToBoard() {
     // ラインが消えない時のみ着地音を再生
     if (!hasLinesToClear) {
         const sound = putSound.cloneNode();
-        sound.volume = 0.20;  // クローンにも音量を設定
+        sound.volume = 0.30;  // クローンにも音量を設定
         sound.play().catch(e => {
             console.log('着地音の再生エラー:', e);
         });
@@ -1022,12 +1022,23 @@ function clearLines() {
 
 // アニメーション終了時にラインを実際に削除
 function finishLineClear() {
-    // ラインを削除（逆順でソートして下から削除）
-    clearingLines.sort((a, b) => b - a);
-    for (const row of clearingLines) {
-        board.splice(row, 1);
-        board.unshift(new Array(numCols).fill(0));
+    // 新しいボードを作成
+    const newBoard = [];
+    
+    // 空の行を上に追加（削除される行の数だけ）
+    for (let i = 0; i < clearingLines.length; i++) {
+        newBoard.push(new Array(numCols).fill(0));
     }
+    
+    // 削除されない行だけを新しいボードに追加
+    for (let row = 0; row < numRows; row++) {
+        if (!clearingLines.includes(row)) {
+            newBoard.push(board[row]);
+        }
+    }
+    
+    // ボードを更新
+    board = newBoard;
     
     // ボードを再描画
     stageGroup.remove(boardGroup);
