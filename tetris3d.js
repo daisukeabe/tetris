@@ -10,11 +10,21 @@ const camera = new THREE.PerspectiveCamera(
     1000
 );
 
-// カメラを正面からステージに近づける
-camera.position.set(4.5, 9.5, 15);  // Z軸を20→15に近づける
-camera.lookAt(4.5, 9.5, 0);  // 正面を向く
+// カメラは最初から正面の位置に固定
+camera.position.set(4.5, 9.5, 15);  // 正面の位置
+camera.lookAt(4.5, 9.5, 0);  // ステージの中心を見る
 
 const scene = new THREE.Scene();
+
+// ステージ全体を動かすためのグループ
+const stageGroup = new THREE.Group();
+// 初期位置：横向きでカメラの真後ろ
+stageGroup.position.set(0, 0, 20);  // カメラの後ろ（Z軸の正の方向）
+stageGroup.rotation.y = Math.PI / 2;  // 90度回転（横向き）
+scene.add(stageGroup);
+
+// ステージアニメーション用の変数
+let stageAnimation = null;
 
 // ライティングを追加して立体感を強調
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);  // 環境光を少し強く
@@ -55,7 +65,7 @@ frame.position.set(
     0
 );
 
-scene.add(frame);
+stageGroup.add(frame);
 
 // 濃い紺色の背景を追加
 const bgGeometry = new THREE.PlaneGeometry(
@@ -72,7 +82,7 @@ background.position.set(
     (numRows * blockSize / 2) - blockSize / 2,
     -blockSize / 2
 );
-scene.add(background);
+stageGroup.add(background);
 
 // 背景の外枠（青色）を追加
 const bgEdges = new THREE.EdgesGeometry(bgGeometry);
@@ -82,7 +92,7 @@ const bgEdgeMaterial = new THREE.LineBasicMaterial({
 });
 const bgFrame = new THREE.LineSegments(bgEdges, bgEdgeMaterial);
 bgFrame.position.copy(background.position);
-scene.add(bgFrame);
+stageGroup.add(bgFrame);
 
 // 白いグリッド線を追加（背景と同じ深さに配置）
 const gridGroup = new THREE.Group();
@@ -116,7 +126,7 @@ for (let i = 0; i <= numRows; i++) {
     gridGroup.add(line);
 }
 
-scene.add(gridGroup);
+stageGroup.add(gridGroup);
 
 function createBoard(rows, cols) {
     const matrix = [];
@@ -132,7 +142,6 @@ let board = createBoard(numRows, numCols);
 let score = 0;
 let lines = 0;
 let level = 1;
-let nextTetromino = null;
 
 // Next piece用のシーンとレンダラー
 const nextContainer = document.getElementById("next-piece");
@@ -161,6 +170,7 @@ let clearingLines = [];
 let clearAnimationStart = null;
 const clearAnimationDuration = 500; // 0.5秒
 let isGameOver = false; // ゲームオーバー状態
+let isGameStarted = false; // ゲーム開始状態
 
 function drawBoard() {
     const group = new THREE.Group();
@@ -198,7 +208,7 @@ function drawBoard() {
 }
 
 let boardGroup = drawBoard();
-scene.add(boardGroup);
+stageGroup.add(boardGroup);
 
 // Tetromino shape definitions
 const tetrominoShapes = [
@@ -293,11 +303,9 @@ function createTetromino() {
     return { group, shape, color };
 }
 
-// 最初のテトリミノとネクストピースを生成
-let currentTetromino = createTetromino();
-nextTetromino = createTetromino();
-scene.add(currentTetromino.group);
-updateNextPieceDisplay();
+// テトリミノの変数（ゲーム開始時まで生成しない）
+let currentTetromino = null;
+let nextTetromino = null;
 
 let posX = 4 * blockSize;  // 初期位置を中央に設定
 let posY = (numRows - 1) * blockSize;
@@ -369,6 +377,34 @@ function animate() {
 
     const currentTime = Date.now();
     
+    // ステージアニメーション処理
+    if (stageAnimation) {
+        const elapsed = currentTime - stageAnimation.startTime;
+        const progress = Math.min(elapsed / stageAnimation.duration, 1);
+        
+        // イージング関数（ease-out: 最初速く、最後ゆっくり）
+        const easeProgress = 1 - Math.pow(1 - progress, 3);
+        
+        // ステージを回転（横向き→正面向き）
+        stageGroup.rotation.y = Math.PI / 2 * (1 - easeProgress);
+        
+        // ステージをZ軸に沿ってまっすぐ移動（後ろから前へ）
+        stageGroup.position.z = 20 * (1 - easeProgress);
+        
+        // アニメーション完了
+        if (progress >= 1) {
+            stageAnimation = null;
+            stageGroup.rotation.y = 0;
+            stageGroup.position.set(0, 0, 0);
+        }
+    }
+    
+    // ゲームが開始されていない場合は描画のみ
+    if (!isGameStarted) {
+        renderer.render(scene, camera);
+        return;
+    }
+    
     // ライン消去アニメーション中は落下を一時停止
     if (clearAnimationStart) {
         const elapsed = currentTime - clearAnimationStart;
@@ -376,16 +412,16 @@ function animate() {
         
         // 前のエフェクトを削除
         if (clearEffectGroup) {
-            scene.remove(clearEffectGroup);
+            stageGroup.remove(clearEffectGroup);
         }
         
         // 新しいエフェクトを描画
         clearEffectGroup = drawClearingEffect(progress);
-        scene.add(clearEffectGroup);
+        stageGroup.add(clearEffectGroup);
         
         // アニメーション終了
         if (progress >= 1) {
-            scene.remove(clearEffectGroup);
+            stageGroup.remove(clearEffectGroup);
             clearEffectGroup = null;
             finishLineClear();
         }
@@ -462,13 +498,13 @@ function addToBoard() {
     // ライン消去をチェック
     clearLines();
     
-    scene.remove(boardGroup);
+    stageGroup.remove(boardGroup);
     boardGroup = drawBoard();
-    scene.add(boardGroup);
+    stageGroup.add(boardGroup);
 }
 
 function resetTetromino() {
-    scene.remove(currentTetromino.group); // 前のテトリミノを削除
+    stageGroup.remove(currentTetromino.group); // 前のテトリミノを削除
     
     // ネクストピースを現在のピースにする
     currentTetromino = nextTetromino;
@@ -477,7 +513,7 @@ function resetTetromino() {
     
     posX = 4 * blockSize;
     posY = (numRows - 1) * blockSize;
-    scene.add(currentTetromino.group);
+    stageGroup.add(currentTetromino.group);
     
     // ゲームオーバーチェック
     if (checkCollision()) {
@@ -487,8 +523,8 @@ function resetTetromino() {
 
 // キーボード操作の追加
 document.addEventListener('keydown', (event) => {
-    // ライン消去アニメーション中またはゲームオーバー中は操作を無効化
-    if (clearAnimationStart || isGameOver) return;
+    // ゲームが開始されていない、ライン消去アニメーション中、またはゲームオーバー中は操作を無効化
+    if (!isGameStarted || clearAnimationStart || isGameOver) return;
     
     if (event.key === 'ArrowLeft') {
         // 左移動
@@ -554,7 +590,7 @@ function rotateTetromino() {
         currentTetromino.shape = originalShape;
     } else {
         // 回転が成功したら3Dオブジェクトを更新
-        scene.remove(currentTetromino.group);
+        stageGroup.remove(currentTetromino.group);
         const color = currentTetromino.color;
         const group = new THREE.Group();
         
@@ -586,7 +622,7 @@ function rotateTetromino() {
         }
         
         currentTetromino.group = group;
-        scene.add(currentTetromino.group);
+        stageGroup.add(currentTetromino.group);
         currentTetromino.group.position.set(posX, posY, 0);
     }
 }
@@ -888,9 +924,9 @@ function finishLineClear() {
     }
     
     // ボードを再描画
-    scene.remove(boardGroup);
+    stageGroup.remove(boardGroup);
     boardGroup = drawBoard();
-    scene.add(boardGroup);
+    stageGroup.add(boardGroup);
     
     // エフェクト状態をリセット
     clearingLines = [];
@@ -905,15 +941,18 @@ function showGameOver() {
     document.getElementById('final-lines').textContent = lines;
     document.getElementById('final-level').textContent = level;
     document.getElementById('game-over').style.display = 'block';
+    
+    // ゲーム画面にぼかしを追加
+    renderer.domElement.classList.add('game-over-blur');
 }
 
 // ゲームをリセット
 function resetGame() {
     // ボードをリセット
     board = createBoard(numRows, numCols);
-    scene.remove(boardGroup);
+    stageGroup.remove(boardGroup);
     boardGroup = drawBoard();
-    scene.add(boardGroup);
+    stageGroup.add(boardGroup);
     
     // スコアをリセット
     score = 0;
@@ -926,19 +965,77 @@ function resetGame() {
     document.getElementById('game-over').style.display = 'none';
     isGameOver = false;
     
+    // ぼかしを解除
+    renderer.domElement.classList.remove('game-over-blur');
+    
     // 新しいテトリミノを生成
-    scene.remove(currentTetromino.group);
+    stageGroup.remove(currentTetromino.group);
     currentTetromino = createTetromino();
     nextTetromino = createTetromino();
-    scene.add(currentTetromino.group);
+    stageGroup.add(currentTetromino.group);
     updateNextPieceDisplay();
     posX = 4 * blockSize;
     posY = (numRows - 1) * blockSize;
 }
 
+// ゲーム開始機能
+function startGame() {
+    // スタート画面を隠す
+    document.getElementById('game-start').style.display = 'none';
+    
+    // ぼかしを解除
+    renderer.domElement.classList.remove('game-not-started');
+    
+    // ステージ回転アニメーションを開始
+    stageAnimation = {
+        startTime: Date.now(),
+        duration: 1800  // 1.8秒でステージが前進しながら回転
+    };
+    
+    // ゲーム状態を初期化
+    isGameStarted = true;
+    isGameOver = false;
+    board = createBoard(numRows, numCols);
+    
+    // 最初のテトリミノを生成
+    currentTetromino = createTetromino();
+    nextTetromino = createTetromino();
+    stageGroup.add(currentTetromino.group);
+    updateNextPieceDisplay();
+    
+    posX = 4 * blockSize;
+    posY = (numRows - 1) * blockSize;
+    lastDropTime = Date.now();
+    
+    // スコアをリセット
+    score = 0;
+    lines = 0;
+    level = 1;
+    dropSpeed = 500;
+    updateDisplay();
+}
+
+// イベントリスナーを設定
+// スタートボタンのイベントリスナー
+const startBtn = document.getElementById('start-btn');
+if (startBtn) {
+    startBtn.addEventListener('click', () => {
+        console.log('Start button clicked');
+        startGame();
+    });
+} else {
+    console.error('Start button not found');
+}
+
 // コンティニューボタンのイベントリスナー
-document.getElementById('continue-btn').addEventListener('click', () => {
-    resetGame();
-});
+const continueBtn = document.getElementById('continue-btn');
+if (continueBtn) {
+    continueBtn.addEventListener('click', () => {
+        resetGame();
+    });
+}
+
+// 初期状態でキャンバスにぼかしを適用
+renderer.domElement.classList.add('game-not-started');
 
 animate();

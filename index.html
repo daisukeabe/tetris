@@ -12,6 +12,27 @@
 <body>
     <div id="game-wrapper">
         <div id="container">
+            <div id="game-start" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26, 26, 62, 0.95); border: 2px solid #00D9FF; border-radius: 10px; padding: 40px; text-align: center; z-index: 1000;">
+                <h1 style="color: #00D9FF; margin: 0 0 30px 0; font-size: 48px;">3D TETRIS</h1>
+                <button id="start-btn" style="
+                    background: linear-gradient(135deg, #00D9FF, #0099CC);
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    padding: 20px 60px;
+                    font-size: 24px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    box-shadow: 0 4px 6px rgba(0, 217, 255, 0.3);
+                ">START GAME</button>
+                <div style="margin-top: 30px; color: #00D9FF; font-size: 14px;">
+                    <div>← → : Move</div>
+                    <div>↑ / Z : Rotate</div>
+                    <div>↓ : Soft Drop</div>
+                    <div>Space : Hard Drop</div>
+                </div>
+            </div>
             <div id="game-over" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26, 26, 62, 0.95); border: 2px solid #00D9FF; border-radius: 10px; padding: 30px; text-align: center; z-index: 1000;">
                 <h2 style="color: #00D9FF; margin: 0 0 20px 0; font-size: 36px;">GAME OVER</h2>
                 <div style="color: white; margin-bottom: 20px;">
