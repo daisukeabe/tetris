@@ -910,14 +910,14 @@ function drawClearingEffect(progress) {
             particleSizeMultiplier = 1.0;
             break;
         case 3:
-            particlesPerBlock = 10;    // 3段: 最大の派手さ
+            particlesPerBlock = 10;    // 3段: 派手
             particleSpeedMultiplier = 1.3;
             particleSizeMultiplier = 1.2;
             break;
         case 4:
-            particlesPerBlock = 10;    // 4段(テトリス): 3段と同じに
-            particleSpeedMultiplier = 1.3;
-            particleSizeMultiplier = 1.2;
+            particlesPerBlock = 12;    // 4段(テトリス): 豪華だが軽量化
+            particleSpeedMultiplier = 1.6;
+            particleSizeMultiplier = 1.5;
             break;
         default:
             particlesPerBlock = 10;
@@ -926,24 +926,83 @@ function drawClearingEffect(progress) {
     }
     
     // テトリス（4段）の時は特別な演出
-    if (lineCount === 4 && progress < 0.2) {
+    if (lineCount === 4) {
         // 画面全体に金色のフラッシュ
-        const flashGeometry = new THREE.PlaneGeometry(
-            numCols * blockSize * 2,
-            numRows * blockSize * 2
-        );
-        const flashMaterial = new THREE.MeshBasicMaterial({
-            color: 0xFFD700,
-            transparent: true,
-            opacity: (1 - progress * 5) * 0.3
-        });
-        const screenFlash = new THREE.Mesh(flashGeometry, flashMaterial);
-        screenFlash.position.set(
-            (numCols / 2 - 0.5) * blockSize,
-            (numRows / 2 - 0.5) * blockSize,
-            blockSize * 2
-        );
-        effectGroup.add(screenFlash);
+        if (progress < 0.3) {
+            const flashGeometry = new THREE.PlaneGeometry(
+                numCols * blockSize * 3,
+                numRows * blockSize * 3
+            );
+            const flashMaterial = new THREE.MeshBasicMaterial({
+                color: 0xFFD700,
+                transparent: true,
+                opacity: (1 - progress * 3.33) * 0.5,
+                side: THREE.DoubleSide
+            });
+            const screenFlash = new THREE.Mesh(flashGeometry, flashMaterial);
+            screenFlash.position.set(
+                (numCols / 2 - 0.5) * blockSize,
+                (numRows / 2 - 0.5) * blockSize,
+                blockSize * 2
+            );
+            effectGroup.add(screenFlash);
+        }
+        
+        // 金色の波紋エフェクト（軽量化）
+        for (let ring = 0; ring < 3; ring++) {
+            const ringProgress = Math.max(0, progress - ring * 0.1);
+            if (ringProgress < 0.5) {
+                const ringRadius = ringProgress * 60;
+                const ringGeometry = new THREE.RingGeometry(
+                    ringRadius,
+                    ringRadius + 5,
+                    16
+                );
+                const ringMaterial = new THREE.MeshBasicMaterial({
+                    color: ring % 2 === 0 ? 0xFFD700 : 0xFFFFFF,
+                    transparent: true,
+                    opacity: (1 - ringProgress * 1.67) * 0.6,
+                    side: THREE.DoubleSide
+                });
+                const ringMesh = new THREE.Mesh(ringGeometry, ringMaterial);
+                ringMesh.position.set(
+                    (numCols / 2 - 0.5) * blockSize,
+                    (numRows / 2 - 0.5) * blockSize,
+                    -5 - ring * 3
+                );
+                effectGroup.add(ringMesh);
+            }
+        }
+        
+        // 星型エフェクト（軽量化）
+        if (progress < 0.3) {
+            for (let star = 0; star < 6; star++) {
+                const starAngle = (star / 6) * Math.PI * 2;
+                const starDistance = progress * 150;
+                const starSize = (1 - progress * 2.5) * blockSize;
+                
+                if (starSize > 0) {
+                    const starGeometry = new THREE.ConeGeometry(
+                        starSize * 0.4,
+                        starSize * 2,
+                        4
+                    );
+                    const starMaterial = new THREE.MeshBasicMaterial({
+                        color: 0xFFFFFF,
+                        transparent: true,
+                        opacity: (1 - progress * 2.5) * 0.8
+                    });
+                    const starMesh = new THREE.Mesh(starGeometry, starMaterial);
+                    starMesh.position.set(
+                        (numCols / 2 - 0.5) * blockSize + Math.cos(starAngle) * starDistance,
+                        (numRows / 2 - 0.5) * blockSize + Math.sin(starAngle) * starDistance,
+                        15
+                    );
+                    starMesh.rotation.z = starAngle + Math.PI / 2;
+                    effectGroup.add(starMesh);
+                }
+            }
+        }
     }
     
     for (const rowIndex of clearingLines) {
@@ -974,8 +1033,12 @@ function drawClearingEffect(progress) {
                 const velocities = particleVelocities.get(blockKey);
                 
                 for (let p = 0; p < particleCount; p++) {
-                    // 3段以上の場合、一部のパーティクルをスキップ（パフォーマンス最適化）
-                    if (lineCount >= 3 && p % 2 === 0 && Math.random() > 0.5) {
+                    // 4段の場合も一部スキップして軽量化
+                    if (lineCount === 4 && p % 3 === 0) {
+                        continue;
+                    }
+                    // 3段の場合もスキップ
+                    if (lineCount === 3 && p % 2 === 0 && Math.random() > 0.5) {
                         continue;
                     }
                     
@@ -985,9 +1048,18 @@ function drawClearingEffect(progress) {
                         blockSize * size * (1 - progress * 0.3)
                     );
                     
-                    // 虹色に変化する色
-                    const hue = (progress + p / particleCount) % 1;
-                    const particleColor = new THREE.Color().setHSL(hue, 1, 0.6);
+                    // テトリス時は金色系、それ以外は虹色
+                    let particleColor;
+                    if (lineCount === 4) {
+                        // 金色～白のグラデーション
+                        const goldHue = 0.1 + Math.random() * 0.05;
+                        const saturation = 0.7 + Math.random() * 0.3;
+                        const lightness = 0.5 + Math.random() * 0.4;
+                        particleColor = new THREE.Color().setHSL(goldHue, saturation, lightness);
+                    } else {
+                        const hue = (progress + p / particleCount) % 1;
+                        particleColor = new THREE.Color().setHSL(hue, 1, 0.6);
+                    }
                     
                     const particleMaterial = new THREE.MeshBasicMaterial({
                         color: particleColor,
@@ -1008,8 +1080,8 @@ function drawClearingEffect(progress) {
                         vel.z * time
                     );
                     
-                    // 虹色に変化する軌跡（段数に応じて調整、軽量化）
-                    const trailCount = Math.min(lineCount, 2); // 最大2本に制限
+                    // テトリス時も軌跡は控えめに（パフォーマンス重視）
+                    const trailCount = lineCount === 4 ? 2 : Math.min(lineCount, 2);
                     for (let t = 0; t < trailCount; t++) {
                         const trailProgress = progress - (t * 0.05);
                         if (trailProgress > 0 && trailProgress < 0.7) {
@@ -1031,14 +1103,21 @@ function drawClearingEffect(progress) {
                             points.push(prevPos, currentPos);
                             
                             const trailGeometry = new THREE.BufferGeometry().setFromPoints(points);
-                            const trailHue = (trailProgress + p / particleCount) % 1;
-                            const trailColor = new THREE.Color().setHSL(trailHue, 1, 0.6);
+                            let trailColor;
+                            if (lineCount === 4) {
+                                // 金色から白へのグラデーション
+                                const goldIntensity = 1 - (t / trailCount);
+                                trailColor = new THREE.Color(0xFFD700).lerp(new THREE.Color(0xFFFFFF), 1 - goldIntensity);
+                            } else {
+                                const trailHue = (trailProgress + p / particleCount) % 1;
+                                trailColor = new THREE.Color().setHSL(trailHue, 1, 0.6);
+                            }
                             
                             const trailMaterial = new THREE.LineBasicMaterial({
                                 color: trailColor,
                                 transparent: true,
                                 opacity: (1 - trailProgress) * 0.6,
-                                linewidth: 3
+                                linewidth: lineCount === 4 ? 5 : 3
                             });
                             
                             const trail = new THREE.Line(trailGeometry, trailMaterial);
@@ -1054,14 +1133,14 @@ function drawClearingEffect(progress) {
                     effectGroup.add(particle);
                 }
                 
-                // 爆発の中心に明るい閃光（4段消去時はより大きく）
-                if (progress < 0.3) {
-                    const flashSize = lineCount === 4 ? 1.5 : 1; // テトリス時は大きく
+                // 爆発の中心に明るい閃光（4段消去時は大きめ）
+                if (progress < 0.25) {
+                    const flashSize = lineCount === 4 ? 1.8 : 1;
                     const flashGeometry = new THREE.SphereGeometry(
                         blockSize * flashSize * (1 - progress * 3)
                     );
                     const flashMaterial = new THREE.MeshBasicMaterial({
-                        color: lineCount === 4 ? 0xFFD700 : 0xFFFFFF, // テトリス時は金色
+                        color: lineCount === 4 ? 0xFFD700 : 0xFFFFFF,
                         transparent: true,
                         opacity: (1 - progress * 3) * (lineCount === 4 ? 1 : 0.8)
                     });
@@ -1072,6 +1151,8 @@ function drawClearingEffect(progress) {
                         0
                     );
                     effectGroup.add(flash);
+                    
+                    // テトリス時の追加エフェクトは削除（パフォーマンス向上）
                 }
                 
                 // 元のブロックを点滅させながらフェードアウト
