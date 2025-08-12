@@ -26,6 +26,35 @@ scene.add(stageGroup);
 // ステージアニメーション用の変数
 let stageAnimation = null;
 
+// Three.jsオブジェクト/リソースを確実に破棄するユーティリティ
+function disposeMaterial(mat) {
+    if (!mat) return;
+    // テクスチャがあれば破棄
+    for (const key in mat) {
+        const val = mat[key];
+        if (val && val.isTexture) {
+            val.dispose();
+        }
+    }
+    if (typeof mat.dispose === 'function') mat.dispose();
+}
+
+function disposeObject3D(obj) {
+    if (!obj) return;
+    obj.traverse((child) => {
+        if (child.geometry && typeof child.geometry.dispose === 'function') {
+            child.geometry.dispose();
+        }
+        if (child.material) {
+            if (Array.isArray(child.material)) {
+                child.material.forEach(disposeMaterial);
+            } else {
+                disposeMaterial(child.material);
+            }
+        }
+    });
+}
+
 // サウンドエフェクトの初期化
 const putSound = new Audio('sound/put.m4a');
 const sparkSound = new Audio('sound/spark.m4a');
@@ -472,6 +501,7 @@ let lastDropTime = Date.now();
 function updateNextPieceDisplay() {
     if (nextRotationGroup) {
         nextScene.remove(nextRotationGroup);
+        disposeObject3D(nextRotationGroup);
     }
     
     nextPieceGroup = new THREE.Group();
@@ -580,9 +610,10 @@ function animate() {
         const elapsed = currentTime - clearAnimationStart;
         const progress = Math.min(elapsed / clearAnimationDuration, 1);
         
-        // 前のエフェクトを削除
+        // 前のエフェクトを削除して破棄
         if (clearEffectGroup) {
             stageGroup.remove(clearEffectGroup);
+            disposeObject3D(clearEffectGroup);
         }
         
         // 新しいエフェクトを描画
@@ -592,6 +623,7 @@ function animate() {
         // アニメーション終了
         if (progress >= 1) {
             stageGroup.remove(clearEffectGroup);
+            disposeObject3D(clearEffectGroup);
             clearEffectGroup = null;
             finishLineClear();
         }
@@ -705,12 +737,14 @@ function addToBoard() {
     clearLines();
     
     stageGroup.remove(boardGroup);
+    disposeObject3D(boardGroup);
     boardGroup = drawBoard();
     stageGroup.add(boardGroup);
 }
 
 function resetTetromino() {
     stageGroup.remove(currentTetromino.group); // 前のテトリミノを削除
+    disposeObject3D(currentTetromino.group);
     
     // ネクストピースを現在のピースにする
     currentTetromino = nextTetromino;
@@ -814,6 +848,7 @@ function rotateTetromino() {
     } else {
         // 回転が成功したら3Dオブジェクトを更新
         stageGroup.remove(currentTetromino.group);
+        disposeObject3D(currentTetromino.group);
         const color = currentTetromino.color;
         const group = new THREE.Group();
         
@@ -1181,6 +1216,7 @@ function finishLineClear() {
     
     // ボードを再描画
     stageGroup.remove(boardGroup);
+    disposeObject3D(boardGroup);
     boardGroup = drawBoard();
     stageGroup.add(boardGroup);
     
@@ -1293,6 +1329,7 @@ function resetGame() {
     // ボードをリセット（デバッグモードの場合は特定の盤面になる）
     board = createBoard(numRows, numCols);
     stageGroup.remove(boardGroup);
+    disposeObject3D(boardGroup);
     boardGroup = drawBoard();
     stageGroup.add(boardGroup);
     
@@ -1316,6 +1353,7 @@ function resetGame() {
     
     // 新しいテトリミノを生成
     stageGroup.remove(currentTetromino.group);
+    disposeObject3D(currentTetromino.group);
     currentTetromino = createTetromino();
     nextTetromino = createTetromino();
     stageGroup.add(currentTetromino.group);
@@ -1342,9 +1380,15 @@ function startGame() {
     
     // ボードを再描画（デバッグ用の初期状態を表示）
     stageGroup.remove(boardGroup);
+    disposeObject3D(boardGroup);
     boardGroup = drawBoard();
     stageGroup.add(boardGroup);
     
+    // 既存のテトリミノがあれば破棄
+    if (currentTetromino && currentTetromino.group) {
+        stageGroup.remove(currentTetromino.group);
+        disposeObject3D(currentTetromino.group);
+    }
     // 最初のテトリミノを生成
     currentTetromino = createTetromino();
     nextTetromino = createTetromino();
