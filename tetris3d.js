@@ -1421,6 +1421,12 @@ function finishLineClear() {
 // ゲームオーバー画面を表示
 function showGameOver() {
     isGameOver = true;
+    
+    // 現在のテトロミノを非表示にする
+    if (currentTetromino && currentTetromino.group) {
+        currentTetromino.group.visible = false;
+    }
+    
     document.getElementById('final-score').textContent = score;
     document.getElementById('final-lines').textContent = lines;
     document.getElementById('final-level').textContent = level;
@@ -1616,8 +1622,10 @@ function resetGame() {
     bgMaterial.needsUpdate = true;
     
     // 新しいテトリミノを生成
-    stageGroup.remove(currentTetromino.group);
-    disposeObject3D(currentTetromino.group);
+    if (currentTetromino && currentTetromino.group) {
+        stageGroup.remove(currentTetromino.group);
+        disposeObject3D(currentTetromino.group);
+    }
     currentTetromino = createTetromino();
     nextTetromino = createTetromino();
     stageGroup.add(currentTetromino.group);
@@ -1732,6 +1740,13 @@ if (continueBtn) {
         
         // ボタンを無効化
         continueBtn.disabled = true;
+        
+        // 古いテトロミノを削除
+        if (currentTetromino && currentTetromino.group) {
+            scene.remove(currentTetromino.group);
+            disposeObject3D(currentTetromino.group);
+            currentTetromino = null;
+        }
         
         const gameOverDiv = document.getElementById('game-over');
         
