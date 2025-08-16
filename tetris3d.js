@@ -1761,12 +1761,11 @@ if (continueBtn) {
     });
 }
 
-// ブロックでタイトルを作成
-function createBlockTitle() {
-    const titleContainer = document.getElementById('block-title');
+// ブロックでタイトルを作成する共通関数
+function createBlockText(containerId, text1, text2 = null, useWhite = false) {
+    const titleContainer = document.getElementById(containerId);
     if (!titleContainer) return;
     
-    // DROP ZONEの文字をブロックで表現
     // 各文字を5x5のグリッドで表現
     const letters = {
         'D': [
@@ -1817,6 +1816,48 @@ function createBlockTitle() {
             [1,1,1,1,0],
             [1,0,0,0,0],
             [1,1,1,1,1]
+        ],
+        'G': [
+            [0,1,1,1,1],
+            [1,0,0,0,0],
+            [1,0,1,1,1],
+            [1,0,0,0,1],
+            [0,1,1,1,0]
+        ],
+        'A': [
+            [0,1,1,1,0],
+            [1,0,0,0,1],
+            [1,1,1,1,1],
+            [1,0,0,0,1],
+            [1,0,0,0,1]
+        ],
+        'M': [
+            [1,0,0,0,1],
+            [1,1,0,1,1],
+            [1,0,1,0,1],
+            [1,0,0,0,1],
+            [1,0,0,0,1]
+        ],
+        'V': [
+            [1,0,0,0,1],
+            [1,0,0,0,1],
+            [1,0,0,0,1],
+            [0,1,0,1,0],
+            [0,0,1,0,0]
+        ],
+        'S': [
+            [0,1,1,1,1],
+            [1,0,0,0,0],
+            [0,1,1,1,0],
+            [0,0,0,0,1],
+            [1,1,1,1,0]
+        ],
+        'T': [
+            [1,1,1,1,1],
+            [0,0,1,0,0],
+            [0,0,1,0,0],
+            [0,0,1,0,0],
+            [0,0,1,0,0]
         ]
     };
     
@@ -1833,21 +1874,33 @@ function createBlockTitle() {
     // タイトル全体のコンテナ
     const titleDiv = document.createElement('div');
     titleDiv.style.display = 'flex';
+    titleDiv.style.flexDirection = text2 ? 'row' : 'row';
     titleDiv.style.justifyContent = 'center';
     titleDiv.style.gap = '15px';
     titleDiv.style.marginBottom = '20px';
     
-    // DROP
-    const dropDiv = document.createElement('div');
-    dropDiv.style.display = 'flex';
-    dropDiv.style.gap = '8px';
+    // 最初の単語
+    const word1Div = document.createElement('div');
+    word1Div.style.display = 'flex';
+    word1Div.style.gap = '8px';
     
-    ['D', 'R', 'O', 'P'].forEach((letter, letterIndex) => {
+    let colorIndex = 0;
+    text1.split('').forEach((letter) => {
+        if (letter === ' ') {
+            const spaceDiv = document.createElement('div');
+            spaceDiv.style.width = '20px';
+            word1Div.appendChild(spaceDiv);
+            return;
+        }
+        
         const letterDiv = document.createElement('div');
         letterDiv.style.display = 'inline-block';
         
         const grid = letters[letter];
-        const color = colors[letterIndex % colors.length];
+        if (!grid) return;
+        
+        const color = useWhite ? '#FFFFFF' : colors[colorIndex % colors.length];
+        colorIndex++;
         
         for (let row = 0; row < 5; row++) {
             const rowDiv = document.createElement('div');
@@ -1866,48 +1919,63 @@ function createBlockTitle() {
             }
             letterDiv.appendChild(rowDiv);
         }
-        dropDiv.appendChild(letterDiv);
+        word1Div.appendChild(letterDiv);
     });
     
-    // ZONE
-    const zoneDiv = document.createElement('div');
-    zoneDiv.style.display = 'flex';
-    zoneDiv.style.gap = '8px';
+    titleDiv.appendChild(word1Div);
     
-    ['Z', 'O', 'N', 'E'].forEach((letter, letterIndex) => {
-        const letterDiv = document.createElement('div');
-        letterDiv.style.display = 'inline-block';
+    // 2番目の単語（あれば）
+    if (text2) {
+        const word2Div = document.createElement('div');
+        word2Div.style.display = 'flex';
+        word2Div.style.gap = '8px';
         
-        const grid = letters[letter];
-        const color = colors[(letterIndex + 4) % colors.length];
-        
-        for (let row = 0; row < 5; row++) {
-            const rowDiv = document.createElement('div');
-            rowDiv.style.display = 'flex';
-            rowDiv.style.height = '8px';
-            
-            for (let col = 0; col < 5; col++) {
-                const block = document.createElement('div');
-                block.style.width = '8px';
-                block.style.height = '8px';
-                block.style.display = 'inline-block';
-                block.style.backgroundColor = grid[row][col] ? color : 'transparent';
-                block.style.border = grid[row][col] ? '1px solid rgba(0, 0, 0, 0.3)' : 'none';
-                block.style.boxSizing = 'border-box';
-                rowDiv.appendChild(block);
+        text2.split('').forEach((letter) => {
+            if (letter === ' ') {
+                const spaceDiv = document.createElement('div');
+                spaceDiv.style.width = '20px';
+                word2Div.appendChild(spaceDiv);
+                return;
             }
-            letterDiv.appendChild(rowDiv);
-        }
-        zoneDiv.appendChild(letterDiv);
-    });
+            
+            const letterDiv = document.createElement('div');
+            letterDiv.style.display = 'inline-block';
+            
+            const grid = letters[letter];
+            if (!grid) return;
+            
+            const color = useWhite ? '#FFFFFF' : colors[colorIndex % colors.length];
+            colorIndex++;
+            
+            for (let row = 0; row < 5; row++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.style.display = 'flex';
+                rowDiv.style.height = '8px';
+                
+                for (let col = 0; col < 5; col++) {
+                    const block = document.createElement('div');
+                    block.style.width = '8px';
+                    block.style.height = '8px';
+                    block.style.display = 'inline-block';
+                    block.style.backgroundColor = grid[row][col] ? color : 'transparent';
+                    block.style.border = grid[row][col] ? '1px solid rgba(0, 0, 0, 0.3)' : 'none';
+                    block.style.boxSizing = 'border-box';
+                    rowDiv.appendChild(block);
+                }
+                letterDiv.appendChild(rowDiv);
+            }
+            word2Div.appendChild(letterDiv);
+        });
+        
+        titleDiv.appendChild(word2Div);
+    }
     
-    titleDiv.appendChild(dropDiv);
-    titleDiv.appendChild(zoneDiv);
     titleContainer.appendChild(titleDiv);
 }
 
 // タイトルを作成
-createBlockTitle();
+createBlockText('block-title', 'DROP', 'ZONE');
+createBlockText('gameover-block-title', 'GAME', 'OVER');
 
 // 初期状態でキャンバスにぼかしを適用
 renderer.domElement.classList.add('game-not-started');

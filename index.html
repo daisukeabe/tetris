@@ -14,7 +14,7 @@
     <div id="game-wrapper">
         <div id="container">
             <div id="game-start" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26, 26, 62, 0.95); border: 2px solid #00D9FF; border-radius: 10px; padding: 40px; text-align: center; z-index: 1000;">
-                <div id="block-title" style="margin: 0 0 30px 0;">
+                <div id="block-title" style="margin: 0 0 50px 0;">
                     <!-- ブロックタイトルはJavaScriptで生成 -->
                 </div>
                 <button id="start-btn" style="
@@ -28,17 +28,19 @@
                     cursor: pointer;
                     transition: all 0.3s;
                     box-shadow: 0 4px 6px rgba(0, 217, 255, 0.3);
-                ">START GAME</button>
-                <div style="margin-top: 30px; color: #00D9FF; font-size: 14px;">
+                ">START</button>
+                <div style="margin-top: 50px; color: #00D9FF; font-size: 14px;">
                     <div>← → : Move</div>
-                    <div>↑ / Z : Rotate</div>
+                    <div>↑ : Rotate</div>
                     <div>↓ : Soft Drop</div>
                     <div>Space : Hard Drop</div>
                 </div>
             </div>
-            <div id="game-over" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26, 26, 62, 0.95); border: 2px solid #00D9FF; border-radius: 10px; padding: 30px; text-align: center; z-index: 1000;">
-                <h2 style="color: #00D9FF; margin: 0 0 20px 0; font-size: 36px;">GAME OVER</h2>
-                <div style="color: white; margin-bottom: 20px;">
+            <div id="game-over" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26, 26, 62, 0.95); border: 2px solid #00D9FF; border-radius: 10px; padding: 40px; text-align: center; z-index: 1000;">
+                <div id="gameover-block-title" style="margin: 0 0 40px 0;">
+                    <!-- ブロックタイトルはJavaScriptで生成 -->
+                </div>
+                <div style="color: white; margin-bottom: 40px;">
                     <div style="font-size: 20px; margin: 10px 0;">Score: <span id="final-score" style="color: #FFD700;">0</span></div>
                     <div style="font-size: 20px; margin: 10px 0;">Lines: <span id="final-lines" style="color: #50E3C2;">0</span></div>
                     <div style="font-size: 20px; margin: 10px 0;">Level: <span id="final-level" style="color: #FF6B6B;">0</span></div>
@@ -77,7 +79,7 @@
             <div class="info-box controls">
                 <h3>CONTROLS</h3>
                 <div>← → : Move</div>
-                <div>↑ / Z : Rotate</div>
+                <div>↑ : Rotate</div>
                 <div>↓ : Soft Drop</div>
                 <div>Space : Hard Drop</div>
             </div>
