@@ -63,11 +63,11 @@ const dangerMusic = new Audio('sound/caution.m4a');  // ピンチ時のBGM
 const endMusic = new Audio('sound/end.m4a');
 const continueMusic = new Audio('sound/conte.m4a');
 putSound.volume = 0.30;  // 音量を30%に設定
-sparkSound.volume = 0.60;  // 音量を60%に設定
+sparkSound.volume = 0.40;  // 音量を40%に設定
 bgMusic.volume = 0.10;  // BGMは10%に設定
 dangerMusic.volume = 0.10;  // ピンチBGMも10%に設定
 endMusic.volume = 0.10;  // エンディングBGMも10%に設定
-continueMusic.volume = 0.20;  // コンティニューBGMは20%に設定
+continueMusic.volume = 0.15;  // コンティニューBGMは15%に設定
 bgMusic.loop = false;  // ループしない
 dangerMusic.loop = true;  // ループする
 endMusic.loop = false;  // ループしない
@@ -1766,7 +1766,7 @@ if (continueBtn) {
         console.log('Playing continue music...');
         console.log('Continue music volume:', continueMusic.volume);
         continueMusic.currentTime = 0;  // 最初から再生
-        continueMusic.volume = 0.20;  // 音量を再設定
+        continueMusic.volume = 0.15;  // 音量を再設定
         continueMusic.play().then(() => {
             console.log('Continue music started successfully');
             console.log('Is playing:', !continueMusic.paused);
