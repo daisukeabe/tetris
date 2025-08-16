@@ -550,6 +550,7 @@ function createTetromino() {
 // テトリミノの変数（ゲーム開始時まで生成しない）
 let currentTetromino = null;
 let nextTetromino = null;
+let ghostTetromino = null;  // ゴーストピース用
 
 let posX = 4 * blockSize;  // 初期位置を中央に設定
 let posY = (numRows - 1) * blockSize;
@@ -699,6 +700,8 @@ function animate() {
                 posY += blockSize; // 衝突した場合は元の位置に戻す
                 addToBoard();
                 resetTetromino();
+            } else {
+                updateGhostPiece(); // 落下時にゴーストピース更新
             }
 
             lastDropTime = currentTime;
@@ -903,9 +906,94 @@ function checkDangerLevel() {
     }
 }
 
+// ゴーストピースを作成/更新
+function updateGhostPiece() {
+    if (!currentTetromino || !isGameStarted) return;
+    
+    // 既存のゴーストピースを削除
+    if (ghostTetromino) {
+        stageGroup.remove(ghostTetromino);
+        disposeObject3D(ghostTetromino);
+        ghostTetromino = null;
+    }
+    
+    // 落下地点を計算（ハードドロップと同じロジック）
+    const originalY = posY;
+    const originalX = posX;
+    
+    // 下に落とせるところまで落とす
+    while (!checkCollision()) {
+        posY -= blockSize;
+    }
+    posY += blockSize; // 衝突位置から1つ戻す
+    
+    const ghostY = posY;
+    
+    // 元の位置に戻す
+    posY = originalY;
+    posX = originalX;
+    
+    // 現在位置と同じ場合はゴーストを表示しない
+    if (Math.abs(originalY - ghostY) < blockSize) {
+        return;
+    }
+    
+    // ゴーストピースを作成
+    ghostTetromino = new THREE.Group();
+    
+    for (let i = 0; i < currentTetromino.shape.length; i++) {
+        // ワイヤーフレームボックスを作成（実寸）
+        const geometry = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
+        
+        // マテリアルを二重にして見やすく
+        // 1. 半透明の面
+        const faceMaterial = new THREE.MeshBasicMaterial({ 
+            color: currentTetromino.color,  // テトロミノと同じ色
+            transparent: true,
+            opacity: 0.05,
+            side: THREE.DoubleSide
+        });
+        const faceMesh = new THREE.Mesh(geometry, faceMaterial);
+        
+        // 2. エッジライン
+        const edges = new THREE.EdgesGeometry(geometry);
+        const edgeMaterial = new THREE.LineBasicMaterial({ 
+            color: currentTetromino.color,  // テトロミノと同じ色のエッジ
+            transparent: true,
+            opacity: 0.25,
+            linewidth: 1
+        });
+        const wireframe = new THREE.LineSegments(edges, edgeMaterial);
+        
+        // 両方の位置を設定（z座標のnullチェック）
+        const blockX = currentTetromino.shape[i].x * blockSize;
+        const blockY = currentTetromino.shape[i].y * blockSize;
+        const blockZ = (currentTetromino.shape[i].z || 0) * blockSize;  // z座標がない場合は0
+        
+        faceMesh.position.set(blockX, blockY, blockZ);
+        wireframe.position.set(blockX, blockY, blockZ);
+        
+        ghostTetromino.add(faceMesh);
+        ghostTetromino.add(wireframe);
+    }
+    
+    // ゴーストピースの位置を設定
+    ghostTetromino.position.set(posX, ghostY, 0);
+    
+    // ステージグループに追加
+    stageGroup.add(ghostTetromino);
+}
+
 function resetTetromino() {
     stageGroup.remove(currentTetromino.group); // 前のテトリミノを削除
     disposeObject3D(currentTetromino.group);
+    
+    // ゴーストピースも削除
+    if (ghostTetromino) {
+        stageGroup.remove(ghostTetromino);
+        disposeObject3D(ghostTetromino);
+        ghostTetromino = null;
+    }
     
     // ネクストピースを現在のピースにする
     currentTetromino = nextTetromino;
@@ -915,6 +1003,9 @@ function resetTetromino() {
     posX = 4 * blockSize;
     posY = (numRows - 1) * blockSize;
     stageGroup.add(currentTetromino.group);
+    
+    // 新しいゴーストピースを作成
+    updateGhostPiece();
     
     // 新しいテトリミノもフェードイン（ネクストから来たものなので再度フェードイン）
     fadeInTetromino(currentTetromino.group);
@@ -935,6 +1026,8 @@ document.addEventListener('keydown', (event) => {
         posX -= blockSize;
         if (checkCollision()) {
             posX += blockSize; // 衝突したら戻す
+        } else {
+            updateGhostPiece(); // ゴーストピース更新
         }
         // 背景を左に回転（無効化）
         // bgImageTargetRotation = 0.1;  // 左移動時は右に少し回転（視差効果）
@@ -943,6 +1036,8 @@ document.addEventListener('keydown', (event) => {
         posX += blockSize;
         if (checkCollision()) {
             posX -= blockSize; // 衝突したら戻す
+        } else {
+            updateGhostPiece(); // ゴーストピース更新
         }
         // 背景を右に回転（無効化）
         // bgImageTargetRotation = -0.1;  // 右移動時は左に少し回転（視差効果）
@@ -953,6 +1048,8 @@ document.addEventListener('keydown', (event) => {
             posY += blockSize;
             addToBoard();
             resetTetromino();
+        } else {
+            updateGhostPiece(); // ゴーストピース更新
         }
     } else if (event.key === ' ') {
         // 瞬間落下（ハードドロップ）
@@ -965,6 +1062,7 @@ document.addEventListener('keydown', (event) => {
     } else if (event.key === 'ArrowUp' || event.key === 'z' || event.key === 'Z') {
         // 回転
         rotateTetromino();
+        updateGhostPiece(); // 回転後にゴーストピース更新
     }
     
     // Tetrominoの位置を即座に更新
@@ -1767,12 +1865,20 @@ function resetGame() {
         stageGroup.remove(currentTetromino.group);
         disposeObject3D(currentTetromino.group);
     }
+    // ゴーストピースも削除
+    if (ghostTetromino) {
+        stageGroup.remove(ghostTetromino);
+        disposeObject3D(ghostTetromino);
+        ghostTetromino = null;
+    }
     currentTetromino = createTetromino();
     nextTetromino = createTetromino();
     stageGroup.add(currentTetromino.group);
     updateNextPieceDisplay();
     posX = 4 * blockSize;
     posY = (numRows - 1) * blockSize;
+    // ゴーストピースを作成
+    updateGhostPiece();
 }
 
 // ゲーム開始機能
@@ -1816,6 +1922,8 @@ function startGame() {
         if (currentTetromino && currentTetromino.group) {
             currentTetromino.group.visible = true;
             fadeInTetromino(currentTetromino.group);
+            // ゴーストピースも作成
+            updateGhostPiece();
         }
     }, 2000);
     
@@ -2182,12 +2290,15 @@ const mobileControls = {
     'rotate-btn': () => {
         if (!isGameStarted || clearAnimationStart || isGameOver || isContinuing) return;
         rotateTetromino();
+        updateGhostPiece(); // 回転後にゴーストピース更新
     },
     'left-btn': () => {
         if (!isGameStarted || clearAnimationStart || isGameOver || isContinuing) return;
         posX -= blockSize;
         if (checkCollision()) {
             posX += blockSize;
+        } else {
+            updateGhostPiece(); // ゴーストピース更新
         }
     },
     'right-btn': () => {
@@ -2195,6 +2306,8 @@ const mobileControls = {
         posX += blockSize;
         if (checkCollision()) {
             posX -= blockSize;
+        } else {
+            updateGhostPiece(); // ゴーストピース更新
         }
     },
     'down-btn': () => {
@@ -2204,6 +2317,8 @@ const mobileControls = {
             posY += blockSize;
             addToBoard();
             resetTetromino();
+        } else {
+            updateGhostPiece(); // ゴーストピース更新
         }
     },
     'drop-btn': () => {
