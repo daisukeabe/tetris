@@ -999,28 +999,25 @@ function rotateTetromino() {
         let minY = Math.min(...currentTetromino.shape.map(block => block.y));
         let maxY = Math.max(...currentTetromino.shape.map(block => block.y));
         
-        let centerX, centerY;
         // 横向きか縦向きかを判定
         if (maxX - minX > maxY - minY) {
-            // 横向きの場合：左から2番目のブロックを軸
-            centerX = minX + 1;
-            centerY = minY;
+            // 横向き→縦向きへの回転
+            // 固定された位置に配置（右に1つずらす）
+            const baseX = minX + 2;
+            const baseY = minY;
+            currentTetromino.shape[0] = { x: baseX, y: baseY - 1, z: 0 };
+            currentTetromino.shape[1] = { x: baseX, y: baseY, z: 0 };
+            currentTetromino.shape[2] = { x: baseX, y: baseY + 1, z: 0 };
+            currentTetromino.shape[3] = { x: baseX, y: baseY + 2, z: 0 };
         } else {
-            // 縦向きの場合：下から2番目のブロックを軸
-            centerX = minX;
-            centerY = maxY - 1;
-        }
-        
-        // 形状を回転（時計回り）
-        for (let i = 0; i < currentTetromino.shape.length; i++) {
-            let relX = currentTetromino.shape[i].x - centerX;
-            let relY = currentTetromino.shape[i].y - centerY;
-            // 回転後の座標を計算
-            let newX = -relY;
-            let newY = relX;
-            // 中心点を基準に戻す
-            currentTetromino.shape[i].x = Math.round(newX + centerX);
-            currentTetromino.shape[i].y = Math.round(newY + centerY);
+            // 縦向き→横向きへの回転
+            // 固定された位置に配置（左に1つずらす）
+            const baseX = minX - 1;
+            const baseY = minY + 1;
+            currentTetromino.shape[0] = { x: baseX - 1, y: baseY, z: 0 };
+            currentTetromino.shape[1] = { x: baseX, y: baseY, z: 0 };
+            currentTetromino.shape[2] = { x: baseX + 1, y: baseY, z: 0 };
+            currentTetromino.shape[3] = { x: baseX + 2, y: baseY, z: 0 };
         }
     } else {
         // その他のテトロミノは左上位置を維持する方式
