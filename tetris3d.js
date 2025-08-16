@@ -501,6 +501,8 @@ function createTetromino() {
     const shapeIndex = Math.floor(Math.random() * tetrominoShapes.length);
     const shape = JSON.parse(JSON.stringify(tetrominoShapes[shapeIndex])); // Deep copy the shape
     const color = tetrominoColors[shapeIndex];
+    const name = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'][shapeIndex]; // テトロミノ名を追加
+    const rotationState = 0; // 回転状態を追加（0, 1, 2, 3）
 
     const group = new THREE.Group();
 
@@ -542,7 +544,7 @@ function createTetromino() {
     // フェードインアニメーション
     fadeInTetromino(group);
     
-    return { group, shape, color };
+    return { group, shape, color, name, rotationState };
 }
 
 // テトリミノの変数（ゲーム開始時まで生成しない）
@@ -981,29 +983,118 @@ document.addEventListener('keydown', (event) => {
 
 // テトリミノの回転機能
 function rotateTetromino() {
-    // 元の形状を保存
+    // Oテトロミノ（正方形）は回転しない
+    if (currentTetromino.name === 'O') {
+        return;
+    }
+    
+    // 元の形状と位置を保存
     const originalShape = JSON.parse(JSON.stringify(currentTetromino.shape));
+    const originalPosX = posX;
     
-    // 回転の中心を計算
-    let minX = Math.min(...currentTetromino.shape.map(block => block.x));
-    let maxX = Math.max(...currentTetromino.shape.map(block => block.x));
-    let minY = Math.min(...currentTetromino.shape.map(block => block.y));
-    let maxY = Math.max(...currentTetromino.shape.map(block => block.y));
-    let centerX = (minX + maxX) / 2;
-    let centerY = (minY + maxY) / 2;
+    if (currentTetromino.name === 'I') {
+        // Iテトロミノの特別な回転処理
+        let minX = Math.min(...currentTetromino.shape.map(block => block.x));
+        let maxX = Math.max(...currentTetromino.shape.map(block => block.x));
+        let minY = Math.min(...currentTetromino.shape.map(block => block.y));
+        let maxY = Math.max(...currentTetromino.shape.map(block => block.y));
+        
+        let centerX, centerY;
+        // 横向きか縦向きかを判定
+        if (maxX - minX > maxY - minY) {
+            // 横向きの場合：左から2番目のブロックを軸
+            centerX = minX + 1;
+            centerY = minY;
+        } else {
+            // 縦向きの場合：下から2番目のブロックを軸
+            centerX = minX;
+            centerY = maxY - 1;
+        }
+        
+        // 形状を回転（時計回り）
+        for (let i = 0; i < currentTetromino.shape.length; i++) {
+            let relX = currentTetromino.shape[i].x - centerX;
+            let relY = currentTetromino.shape[i].y - centerY;
+            // 回転後の座標を計算
+            let newX = -relY;
+            let newY = relX;
+            // 中心点を基準に戻す
+            currentTetromino.shape[i].x = Math.round(newX + centerX);
+            currentTetromino.shape[i].y = Math.round(newY + centerY);
+        }
+    } else {
+        // その他のテトロミノは左上位置を維持する方式
+        // 回転前の最小座標を記録
+        const oldMinX = Math.min(...currentTetromino.shape.map(block => block.x));
+        const oldMinY = Math.min(...currentTetromino.shape.map(block => block.y));
+        
+        // 一旦原点(0,0)を基準に移動
+        for (let i = 0; i < currentTetromino.shape.length; i++) {
+            currentTetromino.shape[i].x -= oldMinX;
+            currentTetromino.shape[i].y -= oldMinY;
+        }
+        
+        // 回転の中心を計算
+        let minX = Math.min(...currentTetromino.shape.map(block => block.x));
+        let maxX = Math.max(...currentTetromino.shape.map(block => block.x));
+        let minY = Math.min(...currentTetromino.shape.map(block => block.y));
+        let maxY = Math.max(...currentTetromino.shape.map(block => block.y));
+        let centerX = (minX + maxX) / 2;
+        let centerY = (minY + maxY) / 2;
+        
+        // 形状を回転（時計回り）
+        for (let i = 0; i < currentTetromino.shape.length; i++) {
+            let relX = currentTetromino.shape[i].x - centerX;
+            let relY = currentTetromino.shape[i].y - centerY;
+            // 回転後の座標を計算
+            let newX = -relY;
+            let newY = relX;
+            // 中心点を基準に戻す
+            currentTetromino.shape[i].x = Math.round(newX + centerX);
+            currentTetromino.shape[i].y = Math.round(newY + centerY);
+        }
+        
+        // 回転後の最小座標を計算
+        const newMinX = Math.min(...currentTetromino.shape.map(block => block.x));
+        const newMinY = Math.min(...currentTetromino.shape.map(block => block.y));
+        
+        // 元の位置に戻す（左上の位置を維持）
+        for (let i = 0; i < currentTetromino.shape.length; i++) {
+            currentTetromino.shape[i].x = currentTetromino.shape[i].x - newMinX + oldMinX;
+            currentTetromino.shape[i].y = currentTetromino.shape[i].y - newMinY + oldMinY;
+        }
+    }
     
-    // 形状を回転（時計回り）
-    for (let i = 0; i < currentTetromino.shape.length; i++) {
-        let relX = currentTetromino.shape[i].x - centerX;
-        let relY = currentTetromino.shape[i].y - centerY;
-        currentTetromino.shape[i].x = Math.round(-relY + centerX);
-        currentTetromino.shape[i].y = Math.round(relX + centerY);
+    // 回転状態を更新
+    if (currentTetromino.rotationState !== undefined) {
+        currentTetromino.rotationState = (currentTetromino.rotationState + 1) % 4;
+    }
+    
+    // 壁キック処理（回転後に壁から押し出す）
+    let kickOffset = 0;
+    
+    // 左壁チェック
+    const minBlockX = Math.min(...currentTetromino.shape.map(block => block.x));
+    if (posX + minBlockX * blockSize < 0) {
+        kickOffset = -(posX + minBlockX * blockSize) / blockSize;
+    }
+    
+    // 右壁チェック
+    const maxBlockX = Math.max(...currentTetromino.shape.map(block => block.x));
+    if (posX + maxBlockX * blockSize >= numCols * blockSize) {
+        kickOffset = -((posX + maxBlockX * blockSize - (numCols - 1) * blockSize) / blockSize);
+    }
+    
+    // キックオフセットを適用
+    if (kickOffset !== 0) {
+        posX += kickOffset * blockSize;
     }
     
     // 衝突チェック
     if (checkCollision()) {
         // 衝突したら元に戻す
         currentTetromino.shape = originalShape;
+        posX = originalPosX;
     } else {
         // 回転が成功したら3Dオブジェクトを更新
         stageGroup.remove(currentTetromino.group);
