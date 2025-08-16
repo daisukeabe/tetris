@@ -196,9 +196,9 @@ body {
     
     #container {
         width: calc(100vw - 20px);
-        height: calc((100vw - 20px) * 1.333); /* 4:3 ratio */
+        height: calc(100vw - 20px); /* 1:1 ratio (正方形) */
         max-width: 500px;
-        max-height: 666px; /* 500 * 1.333 */
+        max-height: 500px; /* 500 * 1 */
         order: 2; /* containerを2番目に */
         flex-shrink: 0; /* 縮小を防ぐ */
         margin: 0 auto;
@@ -278,9 +278,9 @@ body {
     
     #container {
         width: calc(100vw - 10px);
-        height: calc((100vw - 10px) * 1.333); /* 4:3 ratio */
+        height: calc(100vw - 10px); /* 1:1 ratio (正方形) */
         max-width: 400px;
-        max-height: 533px; /* 400 * 1.333 */
+        max-height: 400px; /* 400 * 1 */
         border-width: 1px;
         flex-shrink: 0; /* 縮小を防ぐ */
         margin: 0 auto;
