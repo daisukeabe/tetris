@@ -373,15 +373,15 @@ function drawBoard() {
                 });
                 const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
                 
-                // 控えめな色の線（エッジ）を追加
+                // より濃い色の線（エッジ）を追加
                 const blockColor = tetrominoColors[board[row][col] - 1];
                 const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
-                const darkerColor = new THREE.Color(blockColor).multiplyScalar(0.6); // 60%の明度
+                const darkerColor = new THREE.Color(blockColor).multiplyScalar(0.5); // 50%の明度
                 const edgeMaterial = new THREE.LineBasicMaterial({ 
                     color: darkerColor,
                     linewidth: 2,
-                    opacity: 0.8,
-                    transparent: true
+                    opacity: 1,
+                    transparent: false
                 });
                 const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
                 cube.add(edges);
@@ -483,9 +483,9 @@ function createTetromino() {
         });
         const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
         
-        // 控えめな色の線（エッジ）を追加
+        // より濃い色の線（エッジ）を追加
         const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
-        const darkerColor = new THREE.Color(color).multiplyScalar(0.6); // 60%の明度
+        const darkerColor = new THREE.Color(color).multiplyScalar(0.5); // 50%の明度
         const edgeMaterial = new THREE.LineBasicMaterial({ 
             color: darkerColor, 
             linewidth: 2,
@@ -550,9 +550,9 @@ function updateNextPieceDisplay() {
         });
         const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
         
-        // 控えめな色の線（エッジ）を追加
+        // より濃い色の線（エッジ）を追加
         const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
-        const darkerColor = new THREE.Color(nextTetromino.color).multiplyScalar(0.6); // 60%の明度
+        const darkerColor = new THREE.Color(nextTetromino.color).multiplyScalar(0.5); // 50%の明度
         const edgeMaterial = new THREE.LineBasicMaterial({ 
             color: darkerColor,
             linewidth: 2
@@ -988,9 +988,9 @@ function rotateTetromino() {
             });
             const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
             
-            // 控えめな色の線（エッジ）を追加
+            // より濃い色の線（エッジ）を追加
             const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
-            const darkerColor = new THREE.Color(color).multiplyScalar(0.6); // 60%の明度
+            const darkerColor = new THREE.Color(color).multiplyScalar(0.5); // 50%の明度
             const edgeMaterial = new THREE.LineBasicMaterial({ 
                 color: darkerColor,
                 linewidth: 2
@@ -1309,7 +1309,7 @@ function drawClearingEffect(progress) {
                 
                 if (progress < 0.5) { // エッジも早めに消す
                     const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
-                    const darkerColor = new THREE.Color(originalColor).multiplyScalar(0.6); // 60%の明度
+                    const darkerColor = new THREE.Color(originalColor).multiplyScalar(0.5); // 50%の明度
                     const edgeMaterial = new THREE.LineBasicMaterial({ 
                         color: darkerColor, 
                         linewidth: 2,
