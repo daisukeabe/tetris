@@ -59,14 +59,17 @@ function disposeObject3D(obj) {
 const putSound = new Audio('sound/put.m4a');
 const sparkSound = new Audio('sound/spark.m4a');
 const bgMusic = new Audio('sound/open.m4a');
+const dangerMusic = new Audio('sound/caution.m4a');  // ピンチ時のBGM
 const endMusic = new Audio('sound/end.m4a');
 const continueMusic = new Audio('sound/conte.m4a');
 putSound.volume = 0.30;  // 音量を30%に設定
 sparkSound.volume = 0.60;  // 音量を60%に設定
 bgMusic.volume = 0.10;  // BGMは10%に設定
+dangerMusic.volume = 0.10;  // ピンチBGMも10%に設定
 endMusic.volume = 0.10;  // エンディングBGMも10%に設定
 continueMusic.volume = 0.20;  // コンティニューBGMは20%に設定
 bgMusic.loop = false;  // ループしない
+dangerMusic.loop = true;  // ループする
 endMusic.loop = false;  // ループしない
 continueMusic.loop = false;  // ループしない
 
@@ -74,6 +77,7 @@ continueMusic.loop = false;  // ループしない
 putSound.load();
 sparkSound.load();
 bgMusic.load();
+dangerMusic.load();
 endMusic.load();
 continueMusic.load();
 
@@ -342,6 +346,15 @@ let cameraShakeStart = null;
 let cameraShakeDuration = 0;
 let cameraShakeIntensity = 0;
 const originalCameraPosition = { x: 4.5, y: 9.5, z: 14 };
+
+// 危険レベル警告用の変数
+let isDangerLevel = false;
+let warningFlashStart = null;
+
+// コンティニュー中フラグ
+let isContinuing = false;
+let fadeAnimationActive = false;
+let dangerMusicFadeInterval = null;
 
 function drawBoard() {
     const group = new THREE.Group();
@@ -669,6 +682,18 @@ function animate() {
         }
     }
     
+    // 危険レベル警告の点滅処理
+    if (isDangerLevel && warningFlashStart) {
+        const elapsed = currentTime - warningFlashStart;
+        // 0.5秒周期で点滅
+        const flashCycle = Math.sin(elapsed * 0.006) * 0.5 + 0.5; // 0～1の値
+        
+        // 不透明度を70%～100%で変化させる
+        bgMaterial.transparent = true;
+        bgMaterial.opacity = 0.7 + (flashCycle * 0.3); // 0.7～1.0で変化
+        bgMaterial.needsUpdate = true;
+    }
+    
     // メインシーンをレンダリング
     renderer.render(scene, camera);
     
@@ -740,6 +765,92 @@ function addToBoard() {
     disposeObject3D(boardGroup);
     boardGroup = drawBoard();
     stageGroup.add(boardGroup);
+    
+    // 危険レベルチェック
+    checkDangerLevel();
+}
+
+// ピンチBGMを再生
+function startDangerMusicWithCrossfade() {
+    // 既存のフェードアウトをクリア
+    if (dangerMusicFadeInterval) {
+        clearInterval(dangerMusicFadeInterval);
+        dangerMusicFadeInterval = null;
+    }
+    dangerMusic.volume = 0.10; // 音量を確実にリセット
+    dangerMusic.currentTime = 0;
+    dangerMusic.play().catch(e => {
+        console.log('ピンチBGM再生エラー:', e);
+    });
+}
+
+// ピンチBGMを停止（フェードアウト付き）
+function stopDangerMusic() {
+    // 既存のフェードアウトをクリア
+    if (dangerMusicFadeInterval) {
+        clearInterval(dangerMusicFadeInterval);
+    }
+    
+    // フェードアウト処理
+    const fadeOutDuration = 500; // 0.5秒でフェードアウト
+    const fadeOutSteps = 20;
+    const fadeOutInterval = fadeOutDuration / fadeOutSteps;
+    const startVolume = dangerMusic.volume;
+    const volumeStep = startVolume / fadeOutSteps;
+    
+    let currentStep = 0;
+    dangerMusicFadeInterval = setInterval(() => {
+        currentStep++;
+        dangerMusic.volume = Math.max(0, startVolume - (volumeStep * currentStep));
+        
+        if (currentStep >= fadeOutSteps) {
+            clearInterval(dangerMusicFadeInterval);
+            dangerMusicFadeInterval = null;
+            dangerMusic.pause();
+            dangerMusic.currentTime = 0;
+            dangerMusic.volume = 0.10; // 次回再生用に音量を戻す
+        }
+    }, fadeOutInterval);
+}
+
+// 危険レベルをチェックする関数
+function checkDangerLevel() {
+    // 各列の最高点を確認
+    let maxHeight = 0;
+    for (let col = 0; col < numCols; col++) {
+        for (let row = 0; row < numRows; row++) {
+            if (board[row][col] !== 0) {
+                // rowは下から数えているので、高さは(numRows - row)
+                const height = numRows - row;
+                if (height > maxHeight) {
+                    maxHeight = height;
+                }
+                break; // この列の最高点が見つかったので次の列へ
+            }
+        }
+    }
+    
+    // 2/3以上（約13.3以上）積み上がったら危険レベル
+    const dangerThreshold = Math.floor(numRows * 2 / 3); // 13
+    const wasInDanger = isDangerLevel;
+    isDangerLevel = maxHeight >= dangerThreshold;
+    
+    // 新たに危険レベルに入った時に点滅開始とBGM切り替え
+    if (isDangerLevel && !wasInDanger) {
+        warningFlashStart = Date.now();
+        // 通常BGMを停止してピンチBGMを再生
+        bgMusic.pause();
+        startDangerMusicWithCrossfade();
+    } else if (!isDangerLevel && wasInDanger) {
+        // 危険レベルから脱出したら点滅停止とBGM停止
+        warningFlashStart = null;
+        // 背景を元の状態に戻す
+        bgMaterial.transparent = false;
+        bgMaterial.opacity = 1.0;
+        bgMaterial.needsUpdate = true;
+        // ピンチBGMを停止
+        stopDangerMusic();
+    }
 }
 
 function resetTetromino() {
@@ -766,8 +877,8 @@ function resetTetromino() {
 
 // キーボード操作の追加
 document.addEventListener('keydown', (event) => {
-    // ゲームが開始されていない、ライン消去アニメーション中、またはゲームオーバー中は操作を無効化
-    if (!isGameStarted || clearAnimationStart || isGameOver) return;
+    // ゲームが開始されていない、ライン消去アニメーション中、ゲームオーバー中、またはコンティニュー中は操作を無効化
+    if (!isGameStarted || clearAnimationStart || isGameOver || isContinuing) return;
     
     if (event.key === 'ArrowLeft') {
         // 左移動
@@ -1315,8 +1426,26 @@ function showGameOver() {
     document.getElementById('final-level').textContent = level;
     document.getElementById('game-over').style.display = 'block';
     
+    // コンティニューボタンを有効化
+    const continueBtn = document.getElementById('continue-btn');
+    if (continueBtn) {
+        continueBtn.disabled = false;
+    }
+    
     // ゲーム画面にぼかしを追加
     renderer.domElement.classList.add('game-over-blur');
+    
+    // 背景の点滅を停止して100%にする
+    isDangerLevel = false;
+    warningFlashStart = null;
+    bgMaterial.transparent = false;
+    bgMaterial.opacity = 1.0;
+    bgMaterial.needsUpdate = true;
+    
+    // BGMを停止
+    bgMusic.pause();
+    bgMusic.currentTime = 0;
+    stopDangerMusic();
     
     // エンディングBGMを再生
     endMusic.play().catch(e => {
@@ -1359,6 +1488,8 @@ function fadeInTetromino(group) {
 function fadeOutBoardBlocks() {
     if (!boardGroup) return;
     
+    fadeAnimationActive = true;
+    
     // ボード上の全ブロックを収集
     const blocks = [];
     boardGroup.traverse((child) => {
@@ -1373,11 +1504,17 @@ function fadeOutBoardBlocks() {
     // 各ブロックを順番にフェードアウト
     shuffledBlocks.forEach((block, index) => {
         setTimeout(() => {
+            // フェードアニメーションが停止されている場合はスキップ
+            if (!fadeAnimationActive) return;
+            
             // フェードアウトアニメーション
             const fadeStartTime = Date.now();
             const fadeDuration = 500; // 0.5秒
             
             const fadeAnimation = () => {
+                // フェードアニメーションが停止されている場合は中断
+                if (!fadeAnimationActive) return;
+                
                 const elapsed = Date.now() - fadeStartTime;
                 const progress = Math.min(elapsed / fadeDuration, 1);
                 
@@ -1417,6 +1554,7 @@ function resetGame() {
     // エンディングBGMのみ停止（コンティニューBGMは流し続ける）
     bgMusic.pause();
     bgMusic.currentTime = 0;
+    stopDangerMusic();
     endMusic.pause();
     endMusic.currentTime = 0;
     // continueMusic.pause();  // コンティニューBGMは停止しない
@@ -1431,6 +1569,13 @@ function resetGame() {
     
     // ゲームオーバー画面は既にフェードアウトで非表示になっているのでスキップ
     isGameOver = false;
+    
+    // 危険レベルをリセット
+    isDangerLevel = false;
+    warningFlashStart = null;
+    bgMaterial.transparent = false;
+    bgMaterial.opacity = 1.0;
+    bgMaterial.needsUpdate = true;
     
     // 新しいテトリミノを生成
     stageGroup.remove(currentTetromino.group);
@@ -1537,7 +1682,18 @@ if (startBtn) {
 const continueBtn = document.getElementById('continue-btn');
 if (continueBtn) {
     continueBtn.addEventListener('click', () => {
+        // 既にコンティニュー中なら何もしない
+        if (isContinuing) {
+            return;
+        }
+        
         console.log('Continue button clicked');
+        
+        // コンティニュー開始フラグを立てる
+        isContinuing = true;
+        
+        // ボタンを無効化
+        continueBtn.disabled = true;
         
         const gameOverDiv = document.getElementById('game-over');
         
@@ -1569,8 +1725,18 @@ if (continueBtn) {
         // ブロックをランダムにフェードアウト
         fadeOutBoardBlocks();
         
-        // 1.5秒後に完全に非表示にしてゲームリセット（ブロックが消えるのを待つ）
+        // 2秒後に完全に非表示にしてゲームリセット（ブロックが全て消えるのを待つ）
         setTimeout(() => {
+            // フェードアニメーションを停止
+            fadeAnimationActive = false;
+            
+            // ボードをクリアしてからリセット
+            board = createBoard(numRows, numCols);
+            stageGroup.remove(boardGroup);
+            disposeObject3D(boardGroup);
+            boardGroup = drawBoard();
+            stageGroup.add(boardGroup);
+            
             gameOverDiv.style.display = 'none';
             gameOverDiv.style.opacity = '1';  // 次回のために戻す
             resetGame();
@@ -1580,14 +1746,18 @@ if (continueBtn) {
                 currentTetromino.group.visible = false;
             }
             
-            // さらに0.5秒後に最初のブロックを表示してフェードイン
+            // 1秒後に最初のブロックを表示してフェードイン
             setTimeout(() => {
                 if (currentTetromino && currentTetromino.group) {
                     currentTetromino.group.visible = true;
                     fadeInTetromino(currentTetromino.group);
                 }
-            }, 500);
-        }, 1500);
+                // フェードイン完了後にコンティニュー終了フラグを下ろす（0.3秒のフェードイン時間を考慮）
+                setTimeout(() => {
+                    isContinuing = false;
+                }, 300);
+            }, 1000);
+        }, 2000);
     });
 }
 
