@@ -3,6 +3,37 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(container.clientWidth, container.clientHeight);
 container.appendChild(renderer.domElement);
 
+// リサイズ処理
+function handleResize() {
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    
+    // メインカメラのアスペクト比を更新
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    
+    // レンダラーのサイズを更新
+    renderer.setSize(width, height);
+    
+    // NEXTピース表示のリサイズ
+    if (typeof nextContainer !== 'undefined' && nextContainer) {
+        const nextWidth = nextContainer.clientWidth;
+        const nextHeight = nextContainer.clientHeight;
+        if (typeof nextRenderer !== 'undefined' && nextRenderer) {
+            nextRenderer.setSize(nextWidth, nextHeight);
+        }
+        if (typeof nextCamera !== 'undefined' && nextCamera) {
+            nextCamera.aspect = nextWidth / nextHeight;
+            nextCamera.updateProjectionMatrix();
+        }
+    }
+}
+
+// ウィンドウリサイズイベントにリスナーを追加
+window.addEventListener('resize', handleResize);
+
+// 初期サイズ設定は後で呼び出す
+
 const camera = new THREE.PerspectiveCamera(
     80,  // 視野角をさらに広く（広角レンズ風）
     container.clientWidth / container.clientHeight,
@@ -315,10 +346,15 @@ let level = 1;
 // Next piece用のシーンとレンダラー
 const nextContainer = document.getElementById("next-piece");
 const nextRenderer = new THREE.WebGLRenderer();
-nextRenderer.setSize(100, 100);
+nextRenderer.setSize(nextContainer.clientWidth, nextContainer.clientHeight);
 nextContainer.appendChild(nextRenderer.domElement);
 
-const nextCamera = new THREE.PerspectiveCamera(55, 1, 0.1, 1000);
+const nextCamera = new THREE.PerspectiveCamera(
+    55, 
+    nextContainer.clientWidth / nextContainer.clientHeight, 
+    0.1, 
+    1000
+);
 nextCamera.position.set(1.5, 1, 5);
 nextCamera.lookAt(1.5, 1, 0);
 
@@ -2049,5 +2085,62 @@ createBlockText('gameover-block-title', 'GAME', 'OVER');
 
 // 初期状態でキャンバスにぼかしを適用
 renderer.domElement.classList.add('game-not-started');
+
+// 初期リサイズ処理
+handleResize();
+
+// モバイルコントロールボタンのイベントリスナー
+const mobileControls = {
+    'rotate-btn': () => {
+        if (!isGameStarted || clearAnimationStart || isGameOver || isContinuing) return;
+        rotateTetromino();
+    },
+    'left-btn': () => {
+        if (!isGameStarted || clearAnimationStart || isGameOver || isContinuing) return;
+        posX -= blockSize;
+        if (checkCollision()) {
+            posX += blockSize;
+        }
+    },
+    'right-btn': () => {
+        if (!isGameStarted || clearAnimationStart || isGameOver || isContinuing) return;
+        posX += blockSize;
+        if (checkCollision()) {
+            posX -= blockSize;
+        }
+    },
+    'down-btn': () => {
+        if (!isGameStarted || clearAnimationStart || isGameOver || isContinuing) return;
+        posY -= blockSize;
+        if (checkCollision()) {
+            posY += blockSize;
+            addToBoard();
+            resetTetromino();
+        }
+    },
+    'drop-btn': () => {
+        if (!isGameStarted || clearAnimationStart || isGameOver || isContinuing) return;
+        while (!checkCollision()) {
+            posY -= blockSize;
+        }
+        posY += blockSize;
+        addToBoard();
+        resetTetromino();
+    }
+};
+
+// ボタンにイベントリスナーを追加
+Object.keys(mobileControls).forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if (btn) {
+        // タッチイベントで反応するように
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            mobileControls[btnId]();
+        });
+        // クリックイベントもサポート（デバッグ用）
+        btn.addEventListener('click', mobileControls[btnId]);
+    }
+});
 
 animate();

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Drop Zone</title>
     <link rel="icon" type="image/png" href="favi.png">
     <link rel="stylesheet" href="style.css">
@@ -29,12 +29,6 @@
                     transition: all 0.3s;
                     box-shadow: 0 4px 6px rgba(0, 217, 255, 0.3);
                 ">START</button>
-                <div style="margin-top: 50px; color: #00D9FF; font-size: 14px;">
-                    <div>← → : Move</div>
-                    <div>↑ : Rotate</div>
-                    <div>↓ : Soft Drop</div>
-                    <div>Space : Hard Drop</div>
-                </div>
             </div>
             <div id="game-over" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26, 26, 62, 0.95); border: 2px solid #00D9FF; border-radius: 10px; padding: 40px; text-align: center; z-index: 1000;">
                 <div id="gameover-block-title" style="margin: 0 0 40px 0;">
@@ -59,9 +53,24 @@
                 ">CONTINUE</button>
             </div>
         </div>
+        
+        <!-- モバイル用コントロールボタン -->
+        <div id="mobile-controls" style="display: none;">
+            <div class="control-row">
+                <button id="rotate-btn" class="control-btn">↺</button>
+            </div>
+            <div class="control-row">
+                <button id="left-btn" class="control-btn">⇠</button>
+                <button id="down-btn" class="control-btn">⇣</button>
+                <button id="right-btn" class="control-btn">⇢</button>
+            </div>
+            <div class="control-row">
+                <button id="drop-btn" class="control-btn wide">↧</button>
+            </div>
+        </div>
+        
         <div id="info-panel">
             <div class="info-box">
-                <h3>NEXT</h3>
                 <div id="next-piece"></div>
             </div>
             <div class="info-box">
@@ -75,13 +84,6 @@
             <div class="info-box">
                 <h3>LEVEL</h3>
                 <div id="level">1</div>
-            </div>
-            <div class="info-box controls">
-                <h3>CONTROLS</h3>
-                <div>← → : Move</div>
-                <div>↑ : Rotate</div>
-                <div>↓ : Soft Drop</div>
-                <div>Space : Hard Drop</div>
             </div>
         </div>
     </div>
