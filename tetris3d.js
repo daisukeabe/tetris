@@ -1501,22 +1501,56 @@ function fadeOutBoardBlocks() {
     // ブロックをシャッフル
     const shuffledBlocks = blocks.sort(() => Math.random() - 0.5);
     
-    // 各ブロックを順番にフェードアウト
+    // 各ブロックを順番にカメラに向かって飛ばす
     shuffledBlocks.forEach((block, index) => {
         setTimeout(() => {
             // フェードアニメーションが停止されている場合はスキップ
             if (!fadeAnimationActive) return;
             
-            // フェードアウトアニメーション
-            const fadeStartTime = Date.now();
-            const fadeDuration = 500; // 0.5秒
+            // ブロックの初期位置を保存
+            const initialPosition = {
+                x: block.position.x,
+                y: block.position.y,
+                z: block.position.z
+            };
             
-            const fadeAnimation = () => {
+            // カメラに向かう速度を設定
+            const velocity = {
+                x: (Math.random() - 0.5) * 5,  // 少し横方向のランダム性
+                y: (Math.random() - 0.3) * 8,  // 少し上方向
+                z: 25 + Math.random() * 10      // 強くカメラ方向（手前）に
+            };
+            
+            // 回転速度
+            const rotationSpeed = {
+                x: Math.random() * 0.2 - 0.1,
+                y: Math.random() * 0.2 - 0.1,
+                z: Math.random() * 0.2 - 0.1
+            };
+            
+            // フライアウトアニメーション
+            const flyStartTime = Date.now();
+            const flyDuration = 800; // 0.8秒
+            
+            const flyAnimation = () => {
                 // フェードアニメーションが停止されている場合は中断
                 if (!fadeAnimationActive) return;
                 
-                const elapsed = Date.now() - fadeStartTime;
-                const progress = Math.min(elapsed / fadeDuration, 1);
+                const elapsed = Date.now() - flyStartTime;
+                const progress = Math.min(elapsed / flyDuration, 1);
+                
+                // イージング関数（加速）
+                const easeProgress = progress * progress;
+                
+                // 位置を更新（カメラに向かって飛ばす）
+                block.position.x = initialPosition.x + velocity.x * easeProgress;
+                block.position.y = initialPosition.y + velocity.y * easeProgress;
+                block.position.z = initialPosition.z + velocity.z * easeProgress;
+                
+                // 回転
+                block.rotation.x += rotationSpeed.x;
+                block.rotation.y += rotationSpeed.y;
+                block.rotation.z += rotationSpeed.z;
                 
                 // 透明度を変更
                 if (block.material) {
@@ -1532,12 +1566,16 @@ function fadeOutBoardBlocks() {
                     });
                 }
                 
+                // スケールも少し小さくする
+                const scale = 1 - progress * 0.3;
+                block.scale.set(scale, scale, scale);
+                
                 if (progress < 1) {
-                    requestAnimationFrame(fadeAnimation);
+                    requestAnimationFrame(flyAnimation);
                 }
             };
             
-            fadeAnimation();
+            flyAnimation();
         }, index * Math.min(50, 1500 / blocks.length)); // ブロック数に応じて間隔を調整（最大1.5秒で全部消える）
     });
 }
