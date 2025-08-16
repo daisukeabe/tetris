@@ -1,3 +1,8 @@
+html {
+    height: 100%;
+    overflow: hidden;
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -7,9 +12,10 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
+    height: 100vh;
     padding: 20px;
     box-sizing: border-box;
+    overflow: hidden;
     /* ダブルタップによるズームを防止 */
     touch-action: manipulation;
     -webkit-touch-callout: none;
@@ -23,8 +29,10 @@ body {
     align-items: flex-start;
     max-width: 100%;
     width: 100%;
+    max-height: 100vh;
     justify-content: center;
     flex-wrap: wrap;
+    overflow: hidden;
 }
 
 #container {
@@ -167,6 +175,8 @@ body {
         padding: 10px;
         padding-top: 20px;
         align-items: flex-start;
+        height: 100vh;
+        overflow: hidden;
     }
     
     #game-wrapper {
@@ -257,6 +267,8 @@ body {
         padding: 0;
         padding-top: 10px;
         align-items: flex-start;
+        height: 100vh;
+        overflow: hidden;
     }
     
     #game-wrapper {
