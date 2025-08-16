@@ -6,9 +6,10 @@ body {
     color: white;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     min-height: 100vh;
     padding: 20px;
+    padding-top: 40px;
     box-sizing: border-box;
     /* ダブルタップによるズームを防止 */
     touch-action: manipulation;
@@ -164,6 +165,7 @@ body {
 @media (max-width: 768px) {
     body {
         padding: 10px;
+        padding-top: 20px;
     }
     
     #game-wrapper {
@@ -252,6 +254,7 @@ body {
 @media (max-width: 480px) {
     body {
         padding: 0;
+        padding-top: 10px;
     }
     
     #game-wrapper {
