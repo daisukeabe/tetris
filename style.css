@@ -6,10 +6,9 @@ body {
     color: white;
     display: flex;
     justify-content: center;
-    align-items: flex-start;
+    align-items: center;
     min-height: 100vh;
     padding: 20px;
-    padding-top: 40px;
     box-sizing: border-box;
     /* ダブルタップによるズームを防止 */
     touch-action: manipulation;
@@ -33,6 +32,7 @@ body {
     max-width: 800px;
     aspect-ratio: 1;
     border: 2px solid #00D9FF;
+    border-radius: 5px;
     position: relative;
     /* タッチ操作の制御 */
     touch-action: manipulation;
@@ -166,6 +166,7 @@ body {
     body {
         padding: 10px;
         padding-top: 20px;
+        align-items: flex-start;
     }
     
     #game-wrapper {
@@ -255,6 +256,7 @@ body {
     body {
         padding: 0;
         padding-top: 10px;
+        align-items: flex-start;
     }
     
     #game-wrapper {
