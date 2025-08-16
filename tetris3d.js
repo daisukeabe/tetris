@@ -2129,15 +2129,60 @@ const mobileControls = {
     }
 };
 
+// 長押し用の変数
+let touchIntervals = {};
+
 // ボタンにイベントリスナーを追加
 Object.keys(mobileControls).forEach(btnId => {
     const btn = document.getElementById(btnId);
     if (btn) {
-        // タッチイベントで反応するように
+        // タッチ開始時
         btn.addEventListener('touchstart', (e) => {
             e.preventDefault();
+            
+            // 即座に1回実行
             mobileControls[btnId]();
+            
+            // 左右と下ボタンのみ長押し対応
+            if (btnId === 'left-btn' || btnId === 'right-btn' || btnId === 'down-btn') {
+                // 200ms後から連続実行開始
+                setTimeout(() => {
+                    if (touchIntervals[btnId]) {
+                        // 100ms間隔で連続実行
+                        touchIntervals[btnId] = setInterval(() => {
+                            mobileControls[btnId]();
+                        }, 100);
+                    }
+                }, 200);
+                
+                // フラグを立てる（setTimeoutのチェック用）
+                touchIntervals[btnId] = true;
+            }
         });
+        
+        // タッチ終了時
+        btn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            // 連続実行を停止
+            if (touchIntervals[btnId]) {
+                if (typeof touchIntervals[btnId] === 'number') {
+                    clearInterval(touchIntervals[btnId]);
+                }
+                touchIntervals[btnId] = null;
+            }
+        });
+        
+        // タッチキャンセル時も停止
+        btn.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            if (touchIntervals[btnId]) {
+                if (typeof touchIntervals[btnId] === 'number') {
+                    clearInterval(touchIntervals[btnId]);
+                }
+                touchIntervals[btnId] = null;
+            }
+        });
+        
         // クリックイベントもサポート（デバッグ用）
         btn.addEventListener('click', mobileControls[btnId]);
     }
