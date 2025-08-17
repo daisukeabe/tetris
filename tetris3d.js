@@ -345,8 +345,9 @@ let level = 1;
 
 // Next piece用のシーンとレンダラー
 const nextContainer = document.getElementById("next-piece");
-const nextRenderer = new THREE.WebGLRenderer();
+const nextRenderer = new THREE.WebGLRenderer({ alpha: true }); // 透明背景を有効化
 nextRenderer.setSize(nextContainer.clientWidth, nextContainer.clientHeight);
+nextRenderer.setClearColor(0x1a1a3e, 1); // 紺色の背景に設定（info-boxと同じ色）
 nextContainer.appendChild(nextRenderer.domElement);
 
 const nextCamera = new THREE.PerspectiveCamera(
