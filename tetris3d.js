@@ -2338,6 +2338,27 @@ const mobileControls = {
 
 // 長押し用の変数
 let touchIntervals = {};
+let touchTimeouts = {};
+let activeTouches = {};
+
+// すべてのタッチをクリアする関数
+function clearAllTouches() {
+    Object.keys(touchIntervals).forEach(btnId => {
+        if (typeof touchIntervals[btnId] === 'number') {
+            clearInterval(touchIntervals[btnId]);
+        }
+        touchIntervals[btnId] = null;
+    });
+    
+    Object.keys(touchTimeouts).forEach(btnId => {
+        if (touchTimeouts[btnId]) {
+            clearTimeout(touchTimeouts[btnId]);
+            touchTimeouts[btnId] = null;
+        }
+    });
+    
+    activeTouches = {};
+}
 
 // ボタンにイベントリスナーを追加
 Object.keys(mobileControls).forEach(btnId => {
@@ -2347,29 +2368,88 @@ Object.keys(mobileControls).forEach(btnId => {
         btn.addEventListener('touchstart', (e) => {
             e.preventDefault();
             
+            // 既存のインターバルをクリア（安全のため）
+            if (touchIntervals[btnId]) {
+                if (typeof touchIntervals[btnId] === 'number') {
+                    clearInterval(touchIntervals[btnId]);
+                }
+                touchIntervals[btnId] = null;
+            }
+            if (touchTimeouts[btnId]) {
+                clearTimeout(touchTimeouts[btnId]);
+                touchTimeouts[btnId] = null;
+            }
+            
+            // タッチIDを記録
+            if (e.touches.length > 0) {
+                activeTouches[btnId] = e.touches[0].identifier;
+            }
+            
             // 即座に1回実行
             mobileControls[btnId]();
             
             // 左右と下ボタンのみ長押し対応
             if (btnId === 'left-btn' || btnId === 'right-btn' || btnId === 'down-btn') {
+                // フラグを立てる
+                touchIntervals[btnId] = true;
+                
                 // 200ms後から連続実行開始
-                setTimeout(() => {
-                    if (touchIntervals[btnId]) {
+                touchTimeouts[btnId] = setTimeout(() => {
+                    if (touchIntervals[btnId] && activeTouches[btnId] !== undefined) {
                         // 100ms間隔で連続実行
                         touchIntervals[btnId] = setInterval(() => {
-                            mobileControls[btnId]();
+                            if (activeTouches[btnId] !== undefined) {
+                                mobileControls[btnId]();
+                            } else {
+                                // タッチが無効になった場合は停止
+                                if (typeof touchIntervals[btnId] === 'number') {
+                                    clearInterval(touchIntervals[btnId]);
+                                }
+                                touchIntervals[btnId] = null;
+                            }
                         }, 100);
                     }
                 }, 200);
+            }
+        });
+        
+        // タッチ移動時（ボタンから外れた場合を検知）
+        btn.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            
+            // タッチ位置がボタンから外れたかチェック
+            if (e.touches.length > 0) {
+                const touch = e.touches[0];
+                const rect = btn.getBoundingClientRect();
+                const isInside = touch.clientX >= rect.left && 
+                                touch.clientX <= rect.right && 
+                                touch.clientY >= rect.top && 
+                                touch.clientY <= rect.bottom;
                 
-                // フラグを立てる（setTimeoutのチェック用）
-                touchIntervals[btnId] = true;
+                if (!isInside && activeTouches[btnId] !== undefined) {
+                    // ボタンから外れた場合は停止
+                    delete activeTouches[btnId];
+                    if (touchIntervals[btnId]) {
+                        if (typeof touchIntervals[btnId] === 'number') {
+                            clearInterval(touchIntervals[btnId]);
+                        }
+                        touchIntervals[btnId] = null;
+                    }
+                    if (touchTimeouts[btnId]) {
+                        clearTimeout(touchTimeouts[btnId]);
+                        touchTimeouts[btnId] = null;
+                    }
+                }
             }
         });
         
         // タッチ終了時
         btn.addEventListener('touchend', (e) => {
             e.preventDefault();
+            
+            // このボタンのタッチをクリア
+            delete activeTouches[btnId];
+            
             // 連続実行を停止
             if (touchIntervals[btnId]) {
                 if (typeof touchIntervals[btnId] === 'number') {
@@ -2377,22 +2457,67 @@ Object.keys(mobileControls).forEach(btnId => {
                 }
                 touchIntervals[btnId] = null;
             }
+            if (touchTimeouts[btnId]) {
+                clearTimeout(touchTimeouts[btnId]);
+                touchTimeouts[btnId] = null;
+            }
         });
         
         // タッチキャンセル時も停止
         btn.addEventListener('touchcancel', (e) => {
             e.preventDefault();
+            
+            // このボタンのタッチをクリア
+            delete activeTouches[btnId];
+            
             if (touchIntervals[btnId]) {
                 if (typeof touchIntervals[btnId] === 'number') {
                     clearInterval(touchIntervals[btnId]);
                 }
                 touchIntervals[btnId] = null;
             }
+            if (touchTimeouts[btnId]) {
+                clearTimeout(touchTimeouts[btnId]);
+                touchTimeouts[btnId] = null;
+            }
+        });
+        
+        // マウスリーブ時も停止（念のため）
+        btn.addEventListener('mouseleave', () => {
+            delete activeTouches[btnId];
+            if (touchIntervals[btnId]) {
+                if (typeof touchIntervals[btnId] === 'number') {
+                    clearInterval(touchIntervals[btnId]);
+                }
+                touchIntervals[btnId] = null;
+            }
+            if (touchTimeouts[btnId]) {
+                clearTimeout(touchTimeouts[btnId]);
+                touchTimeouts[btnId] = null;
+            }
         });
         
         // クリックイベントもサポート（デバッグ用）
         btn.addEventListener('click', mobileControls[btnId]);
     }
+});
+
+// ページ全体でタッチ終了時にも全てクリア（安全のため）
+document.addEventListener('touchend', () => {
+    // アクティブなタッチが無い場合は全てクリア
+    if (Object.keys(activeTouches).length === 0) {
+        clearAllTouches();
+    }
+});
+
+// ページ全体でタッチキャンセル時も全てクリア
+document.addEventListener('touchcancel', () => {
+    clearAllTouches();
+});
+
+// ウィンドウがフォーカスを失った時も全てクリア
+window.addEventListener('blur', () => {
+    clearAllTouches();
 });
 
 // ゴーストピース切り替えボタンの処理
