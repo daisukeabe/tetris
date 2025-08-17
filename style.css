@@ -370,6 +370,23 @@ body {
         height: 100%;
     }
     
+    /* スマホ時はNEXTを一番右に配置 */
+    .score-box {
+        order: 1;
+    }
+    
+    .lines-box {
+        order: 2;
+    }
+    
+    .level-box {
+        order: 3;
+    }
+    
+    .next-box {
+        order: 4; /* 一番右 */
+    }
+    
     .info-box h3 {
         font-size: 12px;
         margin: 0 0 5px 0;
