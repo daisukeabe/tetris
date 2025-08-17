@@ -41,7 +41,6 @@ body {
     max-width: 800px;
     aspect-ratio: 1;
     border: 2px solid #00D9FF;
-    border-radius: 5px;
     position: relative;
     /* タッチ操作の制御 */
     touch-action: manipulation;
@@ -209,16 +208,19 @@ body {
 @media (max-width: 1024px) {
     body {
         padding: 10px;
-        padding-top: 20px;
-        align-items: flex-start;
+        padding-top: 10px;
+        align-items: center;
+        justify-content: center;
         height: 100vh;
         overflow: hidden;
     }
     
     #game-wrapper {
-        gap: 15px; /* 間隔を調整 */
+        gap: 10px; /* 間隔を調整 */
         flex-direction: column; /* 通常の縦並び（info-panelが先、containerが後） */
         align-items: center;
+        justify-content: center;
+        margin-top: 0;
     }
     
     #mobile-controls {
@@ -231,27 +233,27 @@ body {
     
     /* スタート画面とゲームオーバー画面のサイズ調整 */
     #game-start, #game-over {
-        width: 90% !important;
-        max-width: 320px !important;
-        padding: 30px 40px !important;
+        width: 80% !important;
+        max-width: 400px !important;
+        padding: 25px 35px !important;
         box-sizing: border-box !important;
     }
     
     #block-title, #gameover-block-title {
-        margin: 0 0 30px 0 !important;
-        transform: scale(0.8);
+        margin: 0 0 25px 0 !important;
+        transform: scale(0.9);
     }
     
     #start-btn, #continue-btn {
-        padding: 15px 40px !important;
-        font-size: 20px !important;
+        padding: 18px 50px !important;
+        font-size: 22px !important;
     }
     
     #container {
         width: calc(100vw - 20px);
-        height: calc(100vw - 20px); /* 1:1 ratio (正方形) */
+        height: calc((100vw - 20px) * 1.15); /* 1:1.15 ratio (15%縦長) */
         max-width: 500px;
-        max-height: 500px; /* 500 * 1 */
+        max-height: 575px; /* 500 * 1.15 */
         order: 2; /* containerを2番目に */
         flex-shrink: 0; /* 縮小を防ぐ */
         margin: 0 auto;
@@ -301,13 +303,30 @@ body {
     }
 }
 
-/* タブレット用の追加調整 */
-@media (max-width: 768px) {
+/* タブレット用の追加調整（iPadなど） */
+@media (min-width: 768px) and (max-width: 1024px) {
+    #container {
+        width: 450px;
+        height: 450px;
+    }
+    
+    #info-panel {
+        width: 450px;
+        height: 90px;
+    }
+    
+    #game-wrapper {
+        padding-top: 20px;
+    }
+}
+
+/* スマートフォン用の追加調整 */
+@media (max-width: 767px) {
     #container {
         width: calc(100vw - 20px);
-        height: calc(100vw - 20px); /* 1:1 ratio (正方形) */
-        max-width: 500px;
-        max-height: 500px;
+        height: calc((100vw - 20px) * 1.2); /* 1:1.2 ratio (20%縦長) */
+        max-width: 450px;
+        max-height: 540px; /* 450 * 1.2 */
     }
     
     #info-panel {
@@ -368,9 +387,9 @@ body {
     
     #container {
         width: calc(100vw - 10px);
-        height: calc(100vw - 10px); /* 1:1 ratio (正方形) */
+        height: calc((100vw - 10px) * 1.1); /* 1:1.1 ratio (少し縦長) */
         max-width: 400px;
-        max-height: 400px; /* 400 * 1 */
+        max-height: 440px; /* 400 * 1.1 */
         border-width: 1px;
         flex-shrink: 0; /* 縮小を防ぐ */
         margin: 0 auto;
