@@ -901,6 +901,19 @@ function addToBoard() {
             board[boardY][boardX] = colorIndex;
         }
     }
+    
+    // 現在のテトロミノを即座に削除（重要：iPhoneでの表示バグ対策）
+    if (currentTetromino && currentTetromino.group) {
+        stageGroup.remove(currentTetromino.group);
+        disposeObject3D(currentTetromino.group);
+    }
+    
+    // ゴーストピースも削除
+    if (ghostTetromino) {
+        stageGroup.remove(ghostTetromino);
+        disposeObject3D(ghostTetromino);
+        ghostTetromino = null;
+    }
 
     // ライン消去をチェック（消去があるか確認）
     const hasLinesToClear = checkForFullLines();
@@ -1091,11 +1104,14 @@ function updateGhostPiece() {
 }
 
 function resetTetromino() {
-    stageGroup.remove(currentTetromino.group); // 前のテトリミノを削除
-    disposeObject3D(currentTetromino.group);
+    // 前のテトリミノを削除（既に削除されていない場合のみ）
+    if (currentTetromino && currentTetromino.group && currentTetromino.group.parent) {
+        stageGroup.remove(currentTetromino.group);
+        disposeObject3D(currentTetromino.group);
+    }
     
     // ゴーストピースも削除
-    if (ghostTetromino) {
+    if (ghostTetromino && ghostTetromino.parent) {
         stageGroup.remove(ghostTetromino);
         disposeObject3D(ghostTetromino);
         ghostTetromino = null;
