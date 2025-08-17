@@ -350,13 +350,15 @@ nextRenderer.setSize(nextContainer.clientWidth, nextContainer.clientHeight);
 nextRenderer.setClearColor(0x1a1a3e, 1); // 紺色の背景に設定（info-boxと同じ色）
 nextContainer.appendChild(nextRenderer.domElement);
 
+// デバイスによってカメラ位置を調整
+const isMobile = window.innerWidth <= 1024;
 const nextCamera = new THREE.PerspectiveCamera(
-    55, 
+    isMobile ? 45 : 55,  // モバイルは45度、PCは55度
     nextContainer.clientWidth / nextContainer.clientHeight, 
     0.1, 
     1000
 );
-nextCamera.position.set(1.5, 1, 5);
+nextCamera.position.set(1.5, 1, isMobile ? 4 : 5);  // モバイルは近く、PCは適度な距離
 nextCamera.lookAt(1.5, 1, 0);
 
 const nextScene = new THREE.Scene();
