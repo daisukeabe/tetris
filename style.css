@@ -110,7 +110,7 @@ body {
     height: 40px;
     border-radius: 50%;
     background: rgba(26, 26, 62, 0.8);
-    border: 2px solid #00D9FF;
+    border: 1px solid #00D9FF;
     color: #00D9FF;
     cursor: pointer;
     display: flex;
@@ -142,7 +142,7 @@ body {
     width: 100%;
     max-width: 300px;
     margin: 0 auto;
-    padding: 10px;
+    padding: 0px;
     order: 3;
 }
 
