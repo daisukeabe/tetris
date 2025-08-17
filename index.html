@@ -29,7 +29,7 @@
         <div id="container">
             <!-- ゴーストピース切り替えボタン -->
             <button id="ghost-toggle" class="ghost-toggle-btn" title="Toggle Ghost Piece">
-                <svg width="30" height="30" viewBox="0 0 30 30" style="display: block; margin: auto;">
+                <svg width="30" height="30" viewBox="0 0 30 30" class="ghost-toggle-icon">
                     <!-- 3D立方体のワイヤーフレーム（中央配置） -->
                     <!-- 前面 -->
                     <rect x="9" y="11" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1" opacity="0.8"/>
@@ -42,49 +42,27 @@
                     <line x1="9" y1="21" x2="12" y2="18" stroke="currentColor" stroke-width="1" opacity="0.6"/>
                 </svg>
             </button>
-            <div id="game-start" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26, 26, 62, 0.95); border: 2px solid #00D9FF; border-radius: 10px; padding: 40px; text-align: center; z-index: 1000;">
-                <div id="block-title" style="margin: 0 0 50px 0;">
+            <div id="game-start" class="modal-overlay">
+                <div id="block-title" class="game-title">
                     <!-- ブロックタイトルはJavaScriptで生成 -->
                 </div>
-                <button id="start-btn" style="
-                    background: linear-gradient(135deg, #00D9FF, #0099CC);
-                    color: white;
-                    border: none;
-                    border-radius: 5px;
-                    padding: 20px 60px;
-                    font-size: 24px;
-                    font-weight: bold;
-                    cursor: pointer;
-                    transition: all 0.3s;
-                    box-shadow: 0 4px 6px rgba(0, 217, 255, 0.3);
-                ">START</button>
+                <button id="start-btn" class="action-btn action-btn-primary">START</button>
             </div>
-            <div id="game-over" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26, 26, 62, 0.95); border: 2px solid #00D9FF; border-radius: 10px; padding: 40px; text-align: center; z-index: 1000;">
-                <div id="gameover-block-title" style="margin: 0 0 40px 0;">
+            <div id="game-over" class="modal-overlay">
+                <div id="gameover-block-title" class="game-title">
                     <!-- ブロックタイトルはJavaScriptで生成 -->
                 </div>
-                <div style="color: white; margin-bottom: 40px;">
-                    <div style="font-size: 20px; margin: 10px 0;">Score: <span id="final-score" style="color: #FFD700;">0</span></div>
-                    <div style="font-size: 20px; margin: 10px 0;">Lines: <span id="final-lines" style="color: #50E3C2;">0</span></div>
-                    <div style="font-size: 20px; margin: 10px 0;">Level: <span id="final-level" style="color: #FF6B6B;">0</span></div>
+                <div class="score-summary">
+                    <div class="score-item">Score: <span id="final-score" class="score-value score-gold">0</span></div>
+                    <div class="score-item">Lines: <span id="final-lines" class="score-value score-green">0</span></div>
+                    <div class="score-item">Level: <span id="final-level" class="score-value score-red">0</span></div>
                 </div>
-                <button id="continue-btn" style="
-                    background: linear-gradient(135deg, #00D9FF, #0099CC);
-                    color: white;
-                    border: none;
-                    border-radius: 5px;
-                    padding: 15px 40px;
-                    font-size: 20px;
-                    font-weight: bold;
-                    cursor: pointer;
-                    transition: all 0.3s;
-                    box-shadow: 0 4px 6px rgba(0, 217, 255, 0.3);
-                ">CONTINUE</button>
+                <button id="continue-btn" class="action-btn action-btn-secondary">CONTINUE</button>
             </div>
         </div>
         
         <!-- モバイル用コントロールボタン -->
-        <div id="mobile-controls" style="display: none;">
+        <div id="mobile-controls" class="mobile-controls">
             <div class="control-row">
                 <button id="left-btn" class="control-btn">⇠</button>
                 <button id="rotate-btn" class="control-btn">↺</button>

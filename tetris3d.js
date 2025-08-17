@@ -692,7 +692,7 @@ function animate() {
             clearEffectGroup = null;
             finishLineClear();
         }
-    } else if (!isGameOver) {
+    } else if (!isGameOver && currentTetromino) {
         // 通常の落下処理（ゲームオーバー中は停止）
         if (currentTime - lastDropTime > dropSpeed) {
             posY -= blockSize; // 下に移動
@@ -700,7 +700,10 @@ function animate() {
             if (checkCollision()) {
                 posY += blockSize; // 衝突した場合は元の位置に戻す
                 addToBoard();
-                resetTetromino();
+                // ライン消去がない場合のみ新しいテトロミノを生成
+                if (!clearAnimationStart) {
+                    resetTetromino();
+                }
             } else {
                 updateGhostPiece(); // 落下時にゴーストピース更新
             }
@@ -708,8 +711,10 @@ function animate() {
             lastDropTime = currentTime;
         }
 
-        // Tetrominoの位置を更新
-        currentTetromino.group.position.set(posX, posY, 0);
+        // Tetrominoの位置を更新（currentTetrominoが存在する場合のみ）
+        if (currentTetromino.group) {
+            currentTetromino.group.position.set(posX, posY, 0);
+        }
     }
 
     // カメラシェイク処理
@@ -1051,7 +1056,10 @@ document.addEventListener('keydown', (event) => {
         if (checkCollision()) {
             posY += blockSize;
             addToBoard();
-            resetTetromino();
+            // ライン消去がない場合のみ新しいテトロミノを生成
+            if (!clearAnimationStart) {
+                resetTetromino();
+            }
         } else {
             updateGhostPiece(); // ゴーストピース更新
         }
@@ -1062,7 +1070,10 @@ document.addEventListener('keydown', (event) => {
         }
         posY += blockSize; // 衝突位置から1つ戻す
         addToBoard();
-        resetTetromino();
+        // ライン消去がない場合のみ新しいテトロミノを生成
+        if (!clearAnimationStart) {
+            resetTetromino();
+        }
     } else if (event.key === 'ArrowUp' || event.key === 'z' || event.key === 'Z') {
         // 回転
         rotateTetromino();
@@ -1659,6 +1670,9 @@ function finishLineClear() {
     clearingLines = [];
     clearAnimationStart = null;
     particleVelocities.clear(); // パーティクル速度もクリア
+    
+    // 新しいテトロミノを生成
+    resetTetromino();
 }
 
 // ゲームオーバー画面を表示
@@ -2320,7 +2334,10 @@ const mobileControls = {
         if (checkCollision()) {
             posY += blockSize;
             addToBoard();
-            resetTetromino();
+            // ライン消去がない場合のみ新しいテトロミノを生成
+            if (!clearAnimationStart) {
+                resetTetromino();
+            }
         } else {
             updateGhostPiece(); // ゴーストピース更新
         }
@@ -2332,7 +2349,10 @@ const mobileControls = {
         }
         posY += blockSize;
         addToBoard();
-        resetTetromino();
+        // ライン消去がない場合のみ新しいテトロミノを生成
+        if (!clearAnimationStart) {
+            resetTetromino();
+        }
     }
 };
 

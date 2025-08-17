@@ -51,6 +51,93 @@ body {
     transition: filter 0.2s ease;
 }
 
+/* Modal Overlay Styles */
+.modal-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(26, 26, 62, 0.95);
+    border: 2px solid #00D9FF;
+    border-radius: 10px;
+    padding: 40px;
+    text-align: center;
+    z-index: 1000;
+}
+
+#game-over {
+    display: none;
+}
+
+/* Game Title Styles */
+.game-title {
+    margin: 0 0 50px 0;
+}
+
+#gameover-block-title {
+    margin: 0 0 40px 0;
+}
+
+/* Action Button Styles */
+.action-btn {
+    background: linear-gradient(135deg, #00D9FF, #0099CC);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 6px rgba(0, 217, 255, 0.3);
+}
+
+.action-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 8px rgba(0, 217, 255, 0.5);
+}
+
+.action-btn-primary {
+    padding: 20px 60px;
+    font-size: 24px;
+}
+
+.action-btn-secondary {
+    padding: 15px 40px;
+    font-size: 20px;
+}
+
+/* Score Summary Styles */
+.score-summary {
+    color: white;
+    margin-bottom: 40px;
+}
+
+.score-item {
+    font-size: 20px;
+    margin: 10px 0;
+}
+
+.score-value {
+    font-weight: bold;
+}
+
+.score-gold {
+    color: #FFD700;
+}
+
+.score-green {
+    color: #50E3C2;
+}
+
+.score-red {
+    color: #FF6B6B;
+}
+
+/* Ghost Toggle Icon */
+.ghost-toggle-icon {
+    display: block;
+    margin: auto;
+}
+
 #info-panel {
     display: flex;
     flex-direction: column;
@@ -137,7 +224,7 @@ body {
 }
 
 /* モバイルコントロール */
-#mobile-controls {
+.mobile-controls {
     display: none;
     width: 100%;
     max-width: 300px;
@@ -223,7 +310,7 @@ body {
         margin-top: 0;
     }
     
-    #mobile-controls {
+    .mobile-controls {
         display: block !important;
     }
     
