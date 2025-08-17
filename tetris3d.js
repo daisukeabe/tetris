@@ -623,6 +623,74 @@ function updateDisplay() {
 
 let clearEffectGroup = null;
 
+// ハードドロップトレイルエフェクト用の変数
+let dropTrailEffects = [];
+
+// ハードドロップトレイルを作成する関数
+function createDropTrail(startY, endY) {
+    const trailGroup = new THREE.Group();
+    const trailStartTime = Date.now();
+    const trailDuration = 150; // 0.15秒でフェードアウト（より早く）
+    
+    // 落下距離に応じて残像数を増やす（上から落とす時はより多く）
+    const dropDistance = startY - endY;
+    const minSegments = 3; // 最小セグメント数
+    const maxSegments = 10; // 最大セグメント数
+    // 距離に応じて残像数を計算（より多くの残像でスピード感を演出）
+    const trailSegments = Math.max(minSegments, Math.min(maxSegments, Math.floor(dropDistance / (blockSize * 0.8))));
+    
+    // 各ブロックの位置に白い残像を作成
+    for (const block of currentTetromino.shape) {
+        for (let i = 0; i < trailSegments; i++) {
+            const progress = i / trailSegments;
+            const trailY = startY - (startY - endY) * progress;
+            
+            // 残像ブロックの枠（エッジ）を作成
+            const trailGeometry = new THREE.BoxGeometry(
+                blockSize * 0.95,
+                blockSize * 0.95,
+                blockSize * 0.95
+            );
+            
+            // エッジ（枠線）のみを作成
+            const edgeGeometry = new THREE.EdgesGeometry(trailGeometry);
+            
+            // 長距離落下時でも控えめに
+            const baseOpacity = trailSegments > 8 ? 0.3 : 0.25;
+            const trailMaterial = new THREE.LineBasicMaterial({
+                color: 0x00D9FF, // 枠と同じ水色
+                transparent: true,
+                opacity: baseOpacity * (1 - progress * 0.4), // より薄く
+                linewidth: 2
+            });
+            
+            const trailMesh = new THREE.LineSegments(edgeGeometry, trailMaterial);
+            trailMesh.position.set(
+                posX + block.x * blockSize,
+                trailY + block.y * blockSize,
+                0
+            );
+            
+            // セグメントインデックスを保存（上から消すため）
+            trailMesh.userData.segmentIndex = i;
+            const baseOpacityForSave = trailSegments > 8 ? 0.3 : 0.25;
+            trailMesh.userData.initialOpacity = baseOpacityForSave * (1 - progress * 0.4);
+            
+            trailGroup.add(trailMesh);
+        }
+    }
+    
+    // アニメーション情報を保存
+    dropTrailEffects.push({
+        group: trailGroup,
+        startTime: trailStartTime,
+        duration: trailDuration,
+        segmentCount: trailSegments // セグメント数を保存
+    });
+    
+    stageGroup.add(trailGroup);
+}
+
 function animate() {
     requestAnimationFrame(animate);
 
@@ -751,6 +819,35 @@ function animate() {
         bgMaterial.transparent = true;
         bgMaterial.opacity = 0.7 + (flashCycle * 0.3); // 0.7～1.0で変化
         bgMaterial.needsUpdate = true;
+    }
+    
+    // ハードドロップトレイルエフェクトの更新
+    for (let i = dropTrailEffects.length - 1; i >= 0; i--) {
+        const effect = dropTrailEffects[i];
+        const elapsed = currentTime - effect.startTime;
+        const progress = Math.min(elapsed / effect.duration, 1);
+        
+        // 各メッシュの透明度を更新（上から順番に消える）
+        effect.group.traverse((child) => {
+            if ((child.isMesh || child.isLineSegments) && child.material) {
+                const segmentIndex = child.userData.segmentIndex;
+                const segmentProgress = (progress * effect.segmentCount) - segmentIndex; // 動的なセグメント数
+                
+                if (segmentProgress > 0) {
+                    // このセグメントが消え始める
+                    const fadeProgress = Math.min(segmentProgress, 1);
+                    child.material.opacity = child.userData.initialOpacity * (1 - fadeProgress);
+                    child.material.needsUpdate = true;
+                }
+            }
+        });
+        
+        // アニメーション終了時に削除
+        if (progress >= 1) {
+            stageGroup.remove(effect.group);
+            disposeObject3D(effect.group);
+            dropTrailEffects.splice(i, 1);
+        }
     }
     
     // メインシーンをレンダリング
@@ -1065,10 +1162,18 @@ document.addEventListener('keydown', (event) => {
         }
     } else if (event.key === ' ') {
         // 瞬間落下（ハードドロップ）
+        const startY = posY; // 開始位置を記録
         while (!checkCollision()) {
             posY -= blockSize;
         }
         posY += blockSize; // 衝突位置から1つ戻す
+        const endY = posY; // 終了位置を記録
+        
+        // トレイルエフェクトを作成
+        if (startY !== endY && currentTetromino) {
+            createDropTrail(startY, endY);
+        }
+        
         addToBoard();
         // ライン消去がない場合のみ新しいテトロミノを生成
         if (!clearAnimationStart) {
@@ -2344,10 +2449,18 @@ const mobileControls = {
     },
     'drop-btn': () => {
         if (!isGameStarted || clearAnimationStart || isGameOver || isContinuing) return;
+        const startY = posY; // 開始位置を記録
         while (!checkCollision()) {
             posY -= blockSize;
         }
         posY += blockSize;
+        const endY = posY; // 終了位置を記録
+        
+        // トレイルエフェクトを作成
+        if (startY !== endY && currentTetromino) {
+            createDropTrail(startY, endY);
+        }
+        
         addToBoard();
         // ライン消去がない場合のみ新しいテトロミノを生成
         if (!clearAnimationStart) {
