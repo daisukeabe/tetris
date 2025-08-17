@@ -258,6 +258,11 @@ body {
     touch-action: manipulation;
 }
 
+/* 左右のボタンを横長に */
+#left-btn, #right-btn {
+    width: 100px;
+}
+
 .control-btn:active {
     background: #00D9FF;
     color: #1a1a3e;
@@ -265,7 +270,7 @@ body {
 }
 
 .control-btn.wide {
-    width: 100px;
+    width: 155px;  /* 上の行の合計幅に合わせる (100+60+100+10*2=280, 280/2+5=145) */
 }
 
 /* メディアクエリ - タブレット対応 */
