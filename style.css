@@ -28,6 +28,7 @@ body {
     gap: 20px;
     align-items: flex-start;
     max-width: 100%;
+    position: relative;
     width: 100%;
     max-height: 100vh;
     justify-content: center;
@@ -101,6 +102,41 @@ body {
     opacity: 0.7;
 }
 
+/* ゴーストピース切り替えボタン */
+.ghost-toggle-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(26, 26, 62, 0.8);
+    border: 2px solid #00D9FF;
+    color: #00D9FF;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    z-index: 100;
+    padding: 0;
+    outline: none;
+}
+
+.ghost-toggle-btn:focus {
+    outline: none;
+}
+
+.ghost-toggle-btn:hover {
+    background: rgba(0, 217, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.ghost-toggle-btn.active {
+    background: rgba(0, 217, 255, 0.4);
+    color: #ffffff;
+}
+
 /* モバイルコントロール */
 #mobile-controls {
     display: none;
@@ -169,8 +205,8 @@ body {
     }
 }
 
-/* メディアクエリ - スマートフォン対応 */
-@media (max-width: 768px) {
+/* メディアクエリ - タブレット・スマートフォン対応 */
+@media (max-width: 1024px) {
     body {
         padding: 10px;
         padding-top: 20px;
@@ -187,6 +223,10 @@ body {
     
     #mobile-controls {
         display: block !important;
+    }
+    
+    #controls-info {
+        display: none !important; /* PCコントロール説明を非表示 */
     }
     
     /* スタート画面とゲームオーバー画面のサイズ調整 */
@@ -261,6 +301,27 @@ body {
     }
 }
 
+/* タブレット用の追加調整 */
+@media (max-width: 768px) {
+    #container {
+        width: calc(100vw - 20px);
+        height: calc(100vw - 20px); /* 1:1 ratio (正方形) */
+        max-width: 500px;
+        max-height: 500px;
+    }
+    
+    #info-panel {
+        flex-direction: row;
+        width: calc(100vw - 20px);
+        max-width: 500px;
+        justify-content: space-between;
+        align-items: stretch;
+        gap: 10px;
+        order: 1;
+        height: 80px;
+    }
+}
+
 /* さらに小さい画面用 */
 @media (max-width: 480px) {
     body {
@@ -269,6 +330,18 @@ body {
         align-items: flex-start;
         height: 100vh;
         overflow: hidden;
+    }
+    
+    .ghost-toggle-btn {
+        width: 35px;
+        height: 35px;
+        top: 5px;
+        right: 5px;
+    }
+    
+    .ghost-toggle-btn svg {
+        width: 25px;
+        height: 25px;
     }
     
     #game-wrapper {

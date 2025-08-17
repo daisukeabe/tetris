@@ -27,6 +27,21 @@
 <body>
     <div id="game-wrapper">
         <div id="container">
+            <!-- ゴーストピース切り替えボタン -->
+            <button id="ghost-toggle" class="ghost-toggle-btn" title="Toggle Ghost Piece">
+                <svg width="30" height="30" viewBox="0 0 30 30" style="display: block; margin: auto;">
+                    <!-- 3D立方体のワイヤーフレーム（中央配置） -->
+                    <!-- 前面 -->
+                    <rect x="9" y="11" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1" opacity="0.8"/>
+                    <!-- 背面 -->
+                    <rect x="12" y="8" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1" opacity="0.4"/>
+                    <!-- 接続線 -->
+                    <line x1="9" y1="11" x2="12" y2="8" stroke="currentColor" stroke-width="1" opacity="0.6"/>
+                    <line x1="19" y1="11" x2="22" y2="8" stroke="currentColor" stroke-width="1" opacity="0.6"/>
+                    <line x1="19" y1="21" x2="22" y2="18" stroke="currentColor" stroke-width="1" opacity="0.6"/>
+                    <line x1="9" y1="21" x2="12" y2="18" stroke="currentColor" stroke-width="1" opacity="0.6"/>
+                </svg>
+            </button>
             <div id="game-start" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26, 26, 62, 0.95); border: 2px solid #00D9FF; border-radius: 10px; padding: 40px; text-align: center; z-index: 1000;">
                 <div id="block-title" style="margin: 0 0 50px 0;">
                     <!-- ブロックタイトルはJavaScriptで生成 -->

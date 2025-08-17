@@ -95,7 +95,7 @@ const endMusic = new Audio('sound/end.m4a');
 const continueMusic = new Audio('sound/conte.m4a');
 putSound.volume = 0.30;  // 音量を30%に設定
 sparkSound.volume = 0.40;  // 音量を40%に設定
-bgMusic.volume = 0.10;  // BGMは10%に設定
+bgMusic.volume = 0.05;  // BGMは5%に設定
 dangerMusic.volume = 0.10;  // ピンチBGMも10%に設定
 endMusic.volume = 0.10;  // エンディングBGMも10%に設定
 continueMusic.volume = 0.15;  // コンティニューBGMは15%に設定
@@ -551,6 +551,7 @@ function createTetromino() {
 let currentTetromino = null;
 let nextTetromino = null;
 let ghostTetromino = null;  // ゴーストピース用
+let showGhostPiece = false;  // ゴーストピース表示フラグ（デフォルトOFF）
 
 let posX = 4 * blockSize;  // 初期位置を中央に設定
 let posY = (numRows - 1) * blockSize;
@@ -917,6 +918,9 @@ function updateGhostPiece() {
         ghostTetromino = null;
     }
     
+    // ゴーストピースが無効の場合は何もしない
+    if (!showGhostPiece) return;
+    
     // 落下地点を計算（ハードドロップと同じロジック）
     const originalY = posY;
     const originalX = posX;
@@ -950,7 +954,7 @@ function updateGhostPiece() {
         const faceMaterial = new THREE.MeshBasicMaterial({ 
             color: currentTetromino.color,  // テトロミノと同じ色
             transparent: true,
-            opacity: 0.05,
+            opacity: 0.15,  // もっと見えるように
             side: THREE.DoubleSide
         });
         const faceMesh = new THREE.Mesh(geometry, faceMaterial);
@@ -960,7 +964,7 @@ function updateGhostPiece() {
         const edgeMaterial = new THREE.LineBasicMaterial({ 
             color: currentTetromino.color,  // テトロミノと同じ色のエッジ
             transparent: true,
-            opacity: 0.25,
+            opacity: 0.3,  // エッジも少し濃く
             linewidth: 1
         });
         const wireframe = new THREE.LineSegments(edges, edgeMaterial);
@@ -2390,5 +2394,44 @@ Object.keys(mobileControls).forEach(btnId => {
         btn.addEventListener('click', mobileControls[btnId]);
     }
 });
+
+// ゴーストピース切り替えボタンの処理
+const ghostToggleBtn = document.getElementById('ghost-toggle');
+if (ghostToggleBtn) {
+    // 初期状態を設定（デフォルトOFFなのでactiveクラスは付けない）
+    
+    // キーボードイベントを防ぐ
+    ghostToggleBtn.addEventListener('keydown', (e) => {
+        if (e.key === ' ' || e.key === 'Space' || e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
+    
+    ghostToggleBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showGhostPiece = !showGhostPiece;
+        
+        if (showGhostPiece) {
+            ghostToggleBtn.classList.add('active');
+            // ゴーストピースを再表示
+            if (currentTetromino && isGameStarted) {
+                updateGhostPiece();
+            }
+        } else {
+            ghostToggleBtn.classList.remove('active');
+            // ゴーストピースを削除
+            if (ghostTetromino) {
+                stageGroup.remove(ghostTetromino);
+                disposeObject3D(ghostTetromino);
+                ghostTetromino = null;
+            }
+        }
+        
+        // フォーカスを外す
+        ghostToggleBtn.blur();
+    });
+}
 
 animate();
