@@ -2065,6 +2065,7 @@ function resetGame() {
     lines = 0;
     level = 1;
     quadraCount = 0;
+    gameStartTime = Date.now(); // ゲーム開始時刻をリセット
     dropSpeed = 500;
     updateDisplay();
     
@@ -2155,6 +2156,7 @@ function startGame() {
     lines = 0;
     level = 1;
     quadraCount = 0;
+    gameStartTime = Date.now(); // ゲーム開始時刻をリセット
     dropSpeed = 500;
     updateDisplay();
 }
