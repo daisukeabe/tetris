@@ -114,10 +114,20 @@ body {
 .score-item {
     font-size: 20px;
     margin: 10px 0;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.score-label {
+    text-align: right;
+    width: 70px;
 }
 
 .score-value {
     font-weight: bold;
+    text-align: left;
+    width: 80px;
 }
 
 .score-gold {
@@ -130,6 +140,14 @@ body {
 
 .score-red {
     color: #FF6B6B;
+}
+
+.score-blue {
+    color: #00D9FF;
+}
+
+.score-purple {
+    color: #B794F4;
 }
 
 /* Ghost Toggle Icon */

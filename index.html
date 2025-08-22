@@ -53,9 +53,26 @@
                     <!-- ブロックタイトルはJavaScriptで生成 -->
                 </div>
                 <div class="score-summary">
-                    <div class="score-item">Score: <span id="final-score" class="score-value score-gold">0</span></div>
-                    <div class="score-item">Lines: <span id="final-lines" class="score-value score-green">0</span></div>
-                    <div class="score-item">Level: <span id="final-level" class="score-value score-red">0</span></div>
+                    <div class="score-item">
+                        <span class="score-label">Time:</span>
+                        <span id="final-time" class="score-value score-blue">00:00</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="score-label">Score:</span>
+                        <span id="final-score" class="score-value score-gold">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="score-label">Lines:</span>
+                        <span id="final-lines" class="score-value score-green">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="score-label">Quattro:</span>
+                        <span id="final-quadra" class="score-value score-purple">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="score-label">Level:</span>
+                        <span id="final-level" class="score-value score-red">0</span>
+                    </div>
                 </div>
                 <button id="continue-btn" class="action-btn action-btn-secondary">CONTINUE</button>
             </div>

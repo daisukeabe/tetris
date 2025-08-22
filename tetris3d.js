@@ -342,6 +342,8 @@ let board = createBoard(numRows, numCols);
 let score = 0;
 let lines = 0;
 let level = 1;
+let quadraCount = 0; // 4列消し回数
+let gameStartTime = null; // ゲーム開始時刻
 
 // Next piece用のシーンとレンダラー
 const nextContainer = document.getElementById("next-piece");
@@ -1813,6 +1815,11 @@ function clearLines() {
         score += lineScores[Math.min(linesToClear.length, 4)] * level;
         lines += linesToClear.length;
         
+        // 4列消し（Quadra）のカウント
+        if (linesToClear.length === 4) {
+            quadraCount++;
+        }
+        
         // レベルアップ（10ライン毎）
         const newLevel = Math.floor(lines / 10) + 1;
         if (newLevel > level) {
@@ -1868,9 +1875,17 @@ function showGameOver() {
         currentTetromino.group.visible = false;
     }
     
+    // プレイ時間を計算
+    const playTime = Date.now() - gameStartTime;
+    const minutes = Math.floor(playTime / 60000);
+    const seconds = Math.floor((playTime % 60000) / 1000);
+    const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
     document.getElementById('final-score').textContent = score;
     document.getElementById('final-lines').textContent = lines;
+    document.getElementById('final-quadra').textContent = quadraCount;
     document.getElementById('final-level').textContent = level;
+    document.getElementById('final-time').textContent = timeString;
     document.getElementById('game-over').style.display = 'block';
     
     // コンティニューボタンを有効化
@@ -2049,6 +2064,7 @@ function resetGame() {
     score = 0;
     lines = 0;
     level = 1;
+    quadraCount = 0;
     dropSpeed = 500;
     updateDisplay();
     
@@ -2097,6 +2113,7 @@ function startGame() {
     // ゲーム状態を初期化
     isGameStarted = true;
     isGameOver = false;
+    gameStartTime = Date.now(); // ゲーム開始時刻を記録
     board = createBoard(numRows, numCols);  // 通常の空のボードで開始
     
     // ボードを再描画（デバッグ用の初期状態を表示）
@@ -2137,6 +2154,7 @@ function startGame() {
     score = 0;
     lines = 0;
     level = 1;
+    quadraCount = 0;
     dropSpeed = 500;
     updateDisplay();
 }
