@@ -274,11 +274,11 @@ textureLoader.load(
         );
         scene.add(bgImageMesh);  // sceneに直接追加（stageGroupではなく）
         
-        console.log('背景画像を読み込みました:', randomBgImage);
+        // 背景画像を読み込みました
     },
     undefined,
     function(error) {
-        console.error('背景画像の読み込みエラー:', error);
+        // 背景画像の読み込みエラー
     }
 );
 
@@ -986,7 +986,7 @@ function addToBoard() {
         const sound = putSound.cloneNode();
         sound.volume = 0.30;  // クローンにも音量を設定
         sound.play().catch(e => {
-            console.log('着地音の再生エラー:', e);
+            // 着地音の再生エラー
         });
     }
     
@@ -1012,7 +1012,7 @@ function startDangerMusicWithCrossfade() {
     dangerMusic.volume = 0.10; // 音量を確実にリセット
     dangerMusic.currentTime = 0;
     dangerMusic.play().catch(e => {
-        console.log('ピンチBGM再生エラー:', e);
+        // ピンチBGM再生エラー
     });
 }
 
@@ -1807,7 +1807,7 @@ function clearLines() {
         const sound = sparkSound.cloneNode();
         sound.volume = 0.60;  // クローンにも音量を設定
         sound.play().catch(e => {
-            console.log('ライン消去音の再生エラー:', e);
+            // ライン消去音の再生エラー
         });
         
         // スコア計算（テトリス方式）
@@ -1911,7 +1911,7 @@ function showGameOver() {
     
     // エンディングBGMを再生
     endMusic.play().catch(e => {
-        console.log('エンディングBGM再生エラー:', e);
+        // エンディングBGM再生エラー
     });
 }
 
@@ -2166,7 +2166,7 @@ function startGame() {
 const startBtn = document.getElementById('start-btn');
 if (startBtn) {
     startBtn.addEventListener('click', () => {
-        console.log('Start button clicked');
+        // Start button clicked
         const gameStartDiv = document.getElementById('game-start');
         
         // フェードアウトアニメーションを設定
@@ -2178,7 +2178,7 @@ if (startBtn) {
         
         // BGMを再生
         bgMusic.play().catch(e => {
-            console.log('BGM再生エラー:', e);
+            // BGM再生エラー
         });
         
         // 0.5秒後に完全に非表示
@@ -2192,7 +2192,7 @@ if (startBtn) {
         }, 1000);
     });
 } else {
-    console.error('Start button not found');
+    // Start button not found
 }
 
 // コンティニューボタンのイベントリスナー
@@ -2204,7 +2204,7 @@ if (continueBtn) {
             return;
         }
         
-        console.log('Continue button clicked');
+        // Continue button clicked
         
         // コンティニュー開始フラグを立てる
         isContinuing = true;
@@ -2234,16 +2234,13 @@ if (continueBtn) {
         endMusic.currentTime = 0;
         
         // コンティニューBGMを再生
-        console.log('Playing continue music...');
-        console.log('Continue music volume:', continueMusic.volume);
+        // Playing continue music...
         continueMusic.currentTime = 0;  // 最初から再生
         continueMusic.volume = 0.15;  // 音量を再設定
         continueMusic.play().then(() => {
-            console.log('Continue music started successfully');
-            console.log('Is playing:', !continueMusic.paused);
-            console.log('Current volume:', continueMusic.volume);
+            // Continue music started successfully
         }).catch(e => {
-            console.log('コンティニューBGM再生エラー:', e);
+            // コンティニューBGM再生エラー
         });
         
         // ブロックをランダムにフェードアウト

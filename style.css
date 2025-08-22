@@ -298,11 +298,6 @@ body {
     width: 100px;
 }
 
-/* 下ボタンは通常サイズに戻す */
-#down-btn {
-    width: 60px;
-}
-
 .control-btn:active {
     background: #00D9FF;
     color: #1a1a3e;
