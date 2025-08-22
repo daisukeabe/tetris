@@ -168,9 +168,22 @@ body {
     justify-content: center;
 }
 
-#score, #lines, #level {
+#score {
     font-size: 24px;
     font-weight: bold;
+    color: #FFD700;
+}
+
+#lines {
+    font-size: 24px;
+    font-weight: bold;
+    color: #50E3C2;
+}
+
+#level {
+    font-size: 24px;
+    font-weight: bold;
+    color: #FF6B6B;
 }
 
 .controls {
@@ -240,6 +253,10 @@ body {
     margin: 10px 0;
 }
 
+.control-row:last-child {
+    margin-top: 20px;
+}
+
 .control-btn {
     width: 60px;
     height: 60px;
@@ -261,6 +278,11 @@ body {
 /* 左右のボタンを横長に */
 #left-btn, #right-btn {
     width: 100px;
+}
+
+/* 下ボタンは通常サイズに戻す */
+#down-btn {
+    width: 60px;
 }
 
 .control-btn:active {
@@ -454,7 +476,7 @@ body {
 @media (max-width: 480px) {
     body {
         padding: 0;
-        padding-top: 10px;
+        padding-top: 5px;
         align-items: flex-start;
         height: 100vh;
         overflow: hidden;
@@ -473,7 +495,7 @@ body {
     }
     
     #game-wrapper {
-        gap: 10px; /* 間隔を確保 */
+        gap: 7px; /* 間隔を確保 */
         align-items: center;
     }
     

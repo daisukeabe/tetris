@@ -629,6 +629,29 @@ let clearEffectGroup = null;
 // ハードドロップトレイルエフェクト用の変数
 let dropTrailEffects = [];
 
+// ステージバウンスエフェクト用の変数
+let stageBounceAnimation = null;
+
+// ステージバウンスエフェクトを作成する関数
+function createStageBounce() {
+    // 既存のバウンスアニメーションがあれば停止
+    if (stageBounceAnimation) {
+        return; // 既にアニメーション中なら新しいものを開始しない
+    }
+    
+    const bounceStartTime = Date.now();
+    const bounceDuration = 400; // 0.4秒
+    const bounceDistance = 0.15; // バウンスの強さ（控えめに）
+    const originalY = stageGroup.position.y;
+    
+    stageBounceAnimation = {
+        startTime: bounceStartTime,
+        duration: bounceDuration,
+        distance: bounceDistance,
+        originalY: originalY
+    };
+}
+
 // ハードドロップトレイルを作成する関数
 function createDropTrail(startY, endY) {
     const trailGroup = new THREE.Group();
@@ -822,6 +845,41 @@ function animate() {
         bgMaterial.transparent = true;
         bgMaterial.opacity = 0.7 + (flashCycle * 0.3); // 0.7～1.0で変化
         bgMaterial.needsUpdate = true;
+    }
+    
+    // ステージバウンスアニメーションの更新
+    if (stageBounceAnimation) {
+        const elapsed = currentTime - stageBounceAnimation.startTime;
+        const progress = Math.min(elapsed / stageBounceAnimation.duration, 1);
+        
+        // 複数バウンスエフェクト（ドン、バイン、いん）
+        const multiBouncEasing = (t) => {
+            if (t < 0.15) {
+                // ドン！（最初の大きな衝撃）
+                return Math.sin(t / 0.15 * Math.PI * 0.5);
+            } else if (t < 0.5) {
+                // バイン！（大きめの跳ね返り）
+                const localT = (t - 0.15) / 0.35;
+                return Math.sin(Math.PI * (0.5 + localT * 1.5)) * 0.6;
+            } else if (t < 0.8) {
+                // いん（小さめの跳ね返り）
+                const localT = (t - 0.5) / 0.3;
+                return Math.sin(Math.PI * (0.5 + localT * 1.5)) * 0.25;
+            } else {
+                // 収束
+                const localT = (t - 0.8) / 0.2;
+                return Math.sin(Math.PI * (0.5 + localT * 1.5)) * 0.1 * (1 - localT);
+            }
+        };
+        
+        const offset = stageBounceAnimation.distance * multiBouncEasing(progress);
+        stageGroup.position.y = stageBounceAnimation.originalY - offset;
+        
+        // アニメーション終了
+        if (progress >= 1) {
+            stageGroup.position.y = stageBounceAnimation.originalY;
+            stageBounceAnimation = null;
+        }
     }
     
     // ハードドロップトレイルエフェクトの更新
@@ -1191,6 +1249,8 @@ document.addEventListener('keydown', (event) => {
         // トレイルエフェクトを作成
         if (startY !== endY && currentTetromino) {
             createDropTrail(startY, endY);
+            // ステージバウンスエフェクトを追加
+            createStageBounce();
         }
         
         addToBoard();
@@ -2478,6 +2538,8 @@ const mobileControls = {
         // トレイルエフェクトを作成
         if (startY !== endY && currentTetromino) {
             createDropTrail(startY, endY);
+            // ステージバウンスエフェクトを追加
+            createStageBounce();
         }
         
         addToBoard();
