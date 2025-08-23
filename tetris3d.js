@@ -1024,7 +1024,7 @@ function stopDangerMusic() {
     }
     
     // フェードアウト処理
-    const fadeOutDuration = 500; // 0.5秒でフェードアウト
+    const fadeOutDuration = 800; // 0.8秒でフェードアウト
     const fadeOutSteps = 20;
     const fadeOutInterval = fadeOutDuration / fadeOutSteps;
     const startVolume = dangerMusic.volume;

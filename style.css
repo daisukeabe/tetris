@@ -16,6 +16,7 @@ body {
     padding: 20px;
     box-sizing: border-box;
     overflow: hidden;
+    letter-spacing: 0.05em;
     /* ダブルタップによるズームを防止 */
     touch-action: manipulation;
     -webkit-touch-callout: none;
@@ -88,6 +89,7 @@ body {
     cursor: pointer;
     transition: all 0.3s;
     box-shadow: 0 4px 6px rgba(0, 217, 255, 0.3);
+    letter-spacing: 0.1em;
 }
 
 .action-btn:hover {
@@ -175,6 +177,7 @@ body {
 .info-box h3 {
     margin: 0 0 10px 0;
     color: #00D9FF;
+    letter-spacing: 0.1em;
 }
 
 #next-piece {
