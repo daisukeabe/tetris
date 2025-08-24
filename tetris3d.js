@@ -506,7 +506,7 @@ function createTetromino() {
     const shapeIndex = Math.floor(Math.random() * tetrominoShapes.length);
     const shape = JSON.parse(JSON.stringify(tetrominoShapes[shapeIndex])); // Deep copy the shape
     const color = tetrominoColors[shapeIndex];
-    const name = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'][shapeIndex]; // テトロミノ名を追加
+    const name = ['I', 'O', 'S', 'Z', 'J', 'L', 'T'][shapeIndex]; // テトロミノ名を追加
     const rotationState = 0; // 回転状態を追加（0, 1, 2, 3）
 
     const group = new THREE.Group();
@@ -1318,6 +1318,28 @@ function rotateTetromino() {
             currentTetromino.shape[2] = { x: baseX + 1, y: baseY, z: 0 };
             currentTetromino.shape[3] = { x: baseX + 2, y: baseY, z: 0 };
         }
+    } else if (currentTetromino.name === 'T') {
+        // Tテトロミノ専用の回転処理（固定パターン）
+        const patterns = [
+            // 0: 初期位置
+            [{ x: 1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }],
+            // 1: 90度回転
+            [{ x: 1, y: 0 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 1, y: 2 }],
+            // 2: 180度回転
+            [{ x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 1, y: 2 }],
+            // 3: 270度回転
+            [{ x: 1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 1, y: 2 }]
+        ];
+        
+        // 現在の回転状態を取得（未定義の場合は0）
+        const currentState = currentTetromino.rotationState || 0;
+        const nextState = (currentState + 1) % 4;
+        
+        // 次の形状を適用
+        currentTetromino.shape = patterns[nextState].map(block => ({ ...block }));
+        
+        // 回転状態を更新（重要！）
+        currentTetromino.rotationState = nextState;
     } else {
         // その他のテトロミノは左上位置を維持する方式
         // 回転前の最小座標を記録
@@ -1359,11 +1381,11 @@ function rotateTetromino() {
             currentTetromino.shape[i].x = currentTetromino.shape[i].x - newMinX + oldMinX;
             currentTetromino.shape[i].y = currentTetromino.shape[i].y - newMinY + oldMinY;
         }
-    }
-    
-    // 回転状態を更新
-    if (currentTetromino.rotationState !== undefined) {
-        currentTetromino.rotationState = (currentTetromino.rotationState + 1) % 4;
+        
+        // その他のテトロミノの回転状態を更新
+        if (currentTetromino.rotationState !== undefined) {
+            currentTetromino.rotationState = (currentTetromino.rotationState + 1) % 4;
+        }
     }
     
     // 壁キック処理（回転後に壁から押し出す）
